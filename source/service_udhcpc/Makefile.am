@@ -21,7 +21,7 @@ bin_PROGRAMS = udhcpc_response_handler
 
 AM_CFLAGS = -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 -I${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include
 
-AM_LDFLAGS =  -lpthread -lz
+AM_LDFLAGS =  -lpthread -lz -lnanomsg
 
 udhcpc_response_handler_SOURCES = service_udhcpc.c
 

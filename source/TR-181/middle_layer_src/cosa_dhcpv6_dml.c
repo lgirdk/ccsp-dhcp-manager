@@ -3500,6 +3500,7 @@ dhcp6c_mapt_mape_GetParamStringValue
             return 1;
         }
 #else
+    UNREFERENCED_PARAMETER(pUlSize);
         AnscCopyString(pValue, "");
         return 0;
 #endif

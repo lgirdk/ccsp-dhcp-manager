@@ -79,15 +79,6 @@
 
 #define UTOPIA_AVAHI_ENABLED            "ccsp_zeroconf_enabled"
 
-#define DHCPMGR_LOG_INFO(format, ...)     \
-                              CcspTraceInfo   (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define DHCPMGR_LOG_ERROR(format, ...)    \
-                              CcspTraceError  (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define DHCPMGR_LOG_NOTICE(format, ...)   \
-                              CcspTraceNotice (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define DHCPMGR_LOG_WARNING(format, ...)  \
-                              CcspTraceWarning(("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-
 /**********************************************************************
                 STRUCTURE AND CONSTANT DEFINITIONS
 **********************************************************************/

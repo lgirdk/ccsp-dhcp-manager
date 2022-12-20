@@ -51,12 +51,3 @@ int serv_ipv6_term(struct serv_ipv6 *si6);
 int return_dibbler_server_pid ();
 int syslog_restart_request();
 void resync_to_nonvol(char *);
-
-#define DHCPMGR_LOG_INFO(format, ...)     \
-                              CcspTraceInfo   (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define DHCPMGR_LOG_ERROR(format, ...)    \
-                              CcspTraceError  (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define DHCPMGR_LOG_NOTICE(format, ...)   \
-                              CcspTraceNotice (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define DHCPMGR_LOG_WARNING(format, ...)  \
-                              CcspTraceWarning(("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))

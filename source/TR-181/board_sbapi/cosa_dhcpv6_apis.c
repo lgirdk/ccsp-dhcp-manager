@@ -2788,8 +2788,10 @@ CosaDmlDhcpv6cGetEnabled
     BOOL bEnabled = FALSE;
     char out[256] = {0};
 
-#if defined(_PLATFORM_TURRIS_)
+#if defined(_PLATFORM_RASPBERRYPI_) || defined(_PLATFORM_TURRIS_)
+#if defined (FEATURE_RDKB_WAN_MANAGER)
     BOOL dibblerEnabled = FALSE;
+#endif
 #endif
 
 // For XB3, AXB6 if dibbler flag enabled, check dibbler-client process status
@@ -8037,12 +8039,7 @@ void UnSetV6RouteFromTable(char* ifname , char* route_addr,int metric_val, int t
 
 #endif
 
-#ifdef WAN_FAILOVER_SUPPORTED
-
-#define MESH_WAN_IFNAME "dmsb.Mesh.WAN.Interface.Name"
-#define MESH_WAN_WAN_IPV6ADDR "MeshWANInterface_UlaAddr"
-#define MESH_REMWAN_WAN_IPV6ADDR "MeshRemoteWANInterface_UlaAddr"
-
+#if defined(RDKB_EXTENDER_ENABLED) || defined(WAN_FAILOVER_SUPPORTED)
 int Get_Device_Mode()
 {
     int deviceMode = 0;
@@ -8056,6 +8053,13 @@ int Get_Device_Mode()
     return deviceMode;
 
 }
+#endif
+
+#ifdef WAN_FAILOVER_SUPPORTED
+
+#define MESH_WAN_IFNAME "dmsb.Mesh.WAN.Interface.Name"
+#define MESH_WAN_WAN_IPV6ADDR "MeshWANInterface_UlaAddr"
+#define MESH_REMWAN_WAN_IPV6ADDR "MeshRemoteWANInterface_UlaAddr"
 
 void getMeshWanIfName(char *mesh_wan_ifname,int size)
 {
