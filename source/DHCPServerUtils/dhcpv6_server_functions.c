@@ -70,15 +70,6 @@
 #include "ccsp_memory.h"
 #endif
 
-#define DHCPMGR_LOG_INFO(format, ...)     \
-                              CcspTraceInfo   (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define DHCPMGR_LOG_ERROR(format, ...)    \
-                              CcspTraceError  (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define DHCPMGR_LOG_NOTICE(format, ...)   \
-                              CcspTraceNotice (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define DHCPMGR_LOG_WARNING(format, ...)  \
-                              CcspTraceWarning(("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-
 #ifdef MULTILAN_FEATURE
 #define CCSP_SUBSYS                 "eRT."
 #define L3_DM_PREFIX                "dmsb.l3net."

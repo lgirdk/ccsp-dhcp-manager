@@ -54,12 +54,12 @@ int serv_can_stop(int sefd, token_t tok, const char *servname);
 int pid_of(const char *name, const char *keyword);
 
 #define DHCPMGR_LOG_INFO(format, ...)     \
-                              CcspTraceInfo   (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
+                              CcspTraceInfo   (("%s - "format"\n", (char *)__FUNCTION__, ##__VA_ARGS__))
 #define DHCPMGR_LOG_ERROR(format, ...)    \
-                              CcspTraceError  (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
+                              CcspTraceError  (("%s - "format"\n", (char *)__FUNCTION__, ##__VA_ARGS__))
 #define DHCPMGR_LOG_NOTICE(format, ...)   \
-                              CcspTraceNotice (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
+                              CcspTraceNotice (("%s - "format"\n", (char *)__FUNCTION__, ##__VA_ARGS__))
 #define DHCPMGR_LOG_WARNING(format, ...)  \
-                              CcspTraceWarning(("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
+                              CcspTraceWarning(("%s - "format"\n", (char *)__FUNCTION__, ##__VA_ARGS__))
 
 #endif /* __SW_UTIL__ */

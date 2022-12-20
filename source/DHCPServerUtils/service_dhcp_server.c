@@ -125,7 +125,7 @@ void _get_shell_output(FILE *fp, char *buf, int len)
     v_secure_pclose(fp);
     }
 }
-
+#if !defined(_COSA_INTEL_USG_ARM_) || defined(INTEL_PUMA7) || defined(_COSA_BCM_ARM_) || defined(_PLATFORM_IPQ_)
 static int getValueFromDevicePropsFile(char *str, char **value)
 {
     FILE *fp = fopen(DEVICE_PROPERTIES, "r");
@@ -163,6 +163,7 @@ static int getValueFromDevicePropsFile(char *str, char **value)
     }
     return ret;
 }
+#endif
 
 int get_Pool_cnt(char arr[15][2],char *cmd)
 {

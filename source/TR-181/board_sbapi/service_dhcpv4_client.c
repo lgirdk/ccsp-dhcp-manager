@@ -39,6 +39,8 @@
 #include "safec_lib_common.h"
 #include "service_dhcpv4_client.h"
 #include "ccsp_trace.h"
+#include "cosa_apis.h"
+
 
 #define BUFF_LEN_8      8
 #define BUFF_LEN_16     16
@@ -184,6 +186,7 @@ int dhcp_parse_vendor_info
                     continue;
                 }
             #else
+                UNREFERENCED_PARAMETER(ethWanMode);
                 if ((strcmp(mode,"ETHWAN") == 0 ))
                 {
                     CcspTraceInfo(("EWAN Mode\n"));

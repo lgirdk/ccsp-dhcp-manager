@@ -179,7 +179,7 @@ static void *dhcpv4_server_sysevent_handler()
                  resync_to_nonvol(NULL);
             }
             #ifdef RDKB_EXTENDER_ENABLED
-            else if(!strncmp(argv[1], "dhcp_conf_change", 16))
+            else if(!strncmp(name, "dhcp_conf_change", 16))
             {
            	UpdateDhcpConfChangeBasedOnEvent();
 	        dhcp_server_start(NULL);

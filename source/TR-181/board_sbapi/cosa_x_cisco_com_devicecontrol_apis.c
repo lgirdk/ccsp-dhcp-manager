@@ -4365,14 +4365,14 @@ CosaDmlLanMngm_SetConf(ULONG ins, PCOSA_DML_LAN_MANAGEMENT pLanMngm)
         commonSyseventSet("bridge-stop", "");
         commonSyseventSet("lan-start", "");
         if (DmSetBool("Device.WiFi.SSID.1.Enable", value) != ANSC_STATUS_SUCCESS) {
-            DHCPMGR_LOG_ERROR("%s: set WiFi.SSID.1 Enable error");
+            DHCPMGR_LOG_ERROR("Set WiFi.SSID.1 Enable error");
         } else {
-            DHCPMGR_LOG_INFO("%s: set WiFi.SSID.1 Enable OK");
+            DHCPMGR_LOG_INFO("Set WiFi.SSID.1 Enable OK");
         }
         if (DmSetBool("Device.WiFi.SSID.2.Enable", value) != ANSC_STATUS_SUCCESS) {
-            DHCPMGR_LOG_ERROR("%s: set WiFi.SSID.2 Enable error");
+            DHCPMGR_LOG_ERROR("Set WiFi.SSID.2 Enable error");
         } else {
-            DHCPMGR_LOG_INFO("%s: set WiFi.SSID.2 Enable OK");
+            DHCPMGR_LOG_INFO("Set WiFi.SSID.2 Enable OK");
         }
     }
     else if(bridge_info.mode == 2)
@@ -4381,14 +4381,14 @@ CosaDmlLanMngm_SetConf(ULONG ins, PCOSA_DML_LAN_MANAGEMENT pLanMngm)
         commonSyseventSet("bridge-start", "");
         commonSyseventSet("lan-stop", "");
         if (DmSetBool("Device.WiFi.SSID.1.Enable", value) != ANSC_STATUS_SUCCESS) {
-            DHCPMGR_LOG_ERROR("%s: set WiFi.SSID.1 Disable error");
+            DHCPMGR_LOG_ERROR("Set WiFi.SSID.1 Disable error");
         } else {
-            DHCPMGR_LOG_INFO("%s: set WiFi.SSID.1 Disable OK");
+            DHCPMGR_LOG_INFO("Set WiFi.SSID.1 Disable OK");
         }
         if (DmSetBool("Device.WiFi.SSID.2.Enable", value) != ANSC_STATUS_SUCCESS) {
-            DHCPMGR_LOG_ERROR("%s: set WiFi.SSID.2 Disable error");
+            DHCPMGR_LOG_ERROR("Set WiFi.SSID.2 Disable error");
         } else {
-            DHCPMGR_LOG_INFO("%s: set WiFi.SSID.2 Disable OK");
+            DHCPMGR_LOG_INFO("Set WiFi.SSID.2 Disable OK");
         }
     }
     else
@@ -4396,14 +4396,14 @@ CosaDmlLanMngm_SetConf(ULONG ins, PCOSA_DML_LAN_MANAGEMENT pLanMngm)
         DHCPMGR_LOG_INFO("Running in different Modes ");
     }
     if (DmSetBool("Device.WiFi.Radio.1.X_CISCO_COM_ApplySetting", 1) != ANSC_STATUS_SUCCESS) {
-        DHCPMGR_LOG_ERROR("%s: set WiFi.Radio.1.X_CISCO_COM_ApplySetting Enable error");
+        DHCPMGR_LOG_ERROR("Set WiFi.Radio.1.X_CISCO_COM_ApplySetting Enable error");
     } else {
-        DHCPMGR_LOG_INFO("%s: set WiFi.Radio.1.X_CISCO_COM_ApplySetting Enable OK");
+        DHCPMGR_LOG_INFO("Set WiFi.Radio.1.X_CISCO_COM_ApplySetting Enable OK");
     }
     if (DmSetBool("Device.WiFi.Radio.2.X_CISCO_COM_ApplySetting", 1) != ANSC_STATUS_SUCCESS) {
-        DHCPMGR_LOG_ERROR("%s: set WiFi.Radio.2.X_CISCO_COM_ApplySetting Enable error");
+        DHCPMGR_LOG_ERROR("Set WiFi.Radio.2.X_CISCO_COM_ApplySetting Enable error");
     } else {
-        DHCPMGR_LOG_INFO("%s: set WiFi.Radio.2.X_CISCO_COM_ApplySetting Enable OK");
+        DHCPMGR_LOG_INFO("Set WiFi.Radio.2.X_CISCO_COM_ApplySetting Enable OK");
     }
     sleep(1);
     vsystem("/bin/sh /etc/webgui.sh &");
