@@ -1380,7 +1380,7 @@ static int Utopia_RawSet
     pLink = pHead;
     while( pLink )
     {
-        if ( AnscEqualString( fullname, pLink->name , false ) )
+        if (strcasecmp(fullname, pLink->name ) == 0)
         {
             break;
         }
@@ -1445,7 +1445,7 @@ static int syscfg_unset
     pLink2 = pLink;
     while( pLink )
     {
-        if ( AnscEqualString( fullname, pLink->name , false ) )
+        if (strcasecmp(fullname, pLink->name ) == 0)
         {
             break;
         }
@@ -1517,7 +1517,7 @@ static int Utopia_RawGet
     pLink = pHead;
     while( pLink )
     {
-        if ( AnscEqualString( fullname, pLink->name , false ) )
+        if (strcasecmp(fullname, pLink->name ) == 0)
         {
             break;
         }
@@ -2576,7 +2576,7 @@ CosaDmlDhcpv6cSetCfg
         return ANSC_STATUS_FAILURE;
 
 
-    if (!AnscEqualString((char*)pCfg->Alias, (char*)g_dhcpv6_client.Cfg.Alias, TRUE))
+    if (strcmp((char*)pCfg->Alias, (char*)g_dhcpv6_client.Cfg.Alias) != 0)
     {
         rc = strcpy_s(buf, sizeof(buf), SYSCFG_FORMAT_DHCP6C"_alias");
         ERR_CHK(rc);
@@ -2609,7 +2609,7 @@ CosaDmlDhcpv6cSetCfg
         need_to_restart_service = 1;
     }
 
-    if (!AnscEqualString((char*)pCfg->RequestedOptions, (char*)g_dhcpv6_client.Cfg.RequestedOptions, TRUE))
+    if (strcmp((char*)pCfg->RequestedOptions, (char*)g_dhcpv6_client.Cfg.RequestedOptions) != 0)
     {
         rc = strcpy_s(buf, sizeof(buf), SYSCFG_FORMAT_DHCP6C"_requested_options");
         ERR_CHK(rc);
@@ -3314,7 +3314,7 @@ CosaDmlDhcpv6cSetSentOption
                 ERR_CHK(rc);
             }
 
-            if (!AnscEqualString((char*)pEntry->Alias, (char*)p_old_entry->Alias, TRUE))
+            if (strcmp((char*)pEntry->Alias, (char*)p_old_entry->Alias) != 0)
                 Utopia_RawSet(&utctx, namespace, "alias" ,(char*)pEntry->Alias);
 
             if (pEntry->bEnabled != p_old_entry->bEnabled)
@@ -3335,7 +3335,7 @@ CosaDmlDhcpv6cSetSentOption
                 need_restart_service = 1;
             }
 
-            if (!AnscEqualString((char*)pEntry->Value, (char*)p_old_entry->Value, TRUE))
+            if (strcmp((char*)pEntry->Value, (char*)p_old_entry->Value) != 0)
             {
                 Utopia_RawSet(&utctx, namespace, "value" ,(char*)pEntry->Value);
 
@@ -5836,7 +5836,7 @@ _get_iapd_prefix_pathname(char ** pp_pathname, int * p_len)
 
             val_len = sizeof(param_val);
             if ( ( 0 == g_GetParamValueString(g_pDslhDmlAgent, name, param_val, &val_len)) &&
-                 AnscEqualString(param_val, "PrefixDelegation", TRUE ) )
+                 (strcmp(param_val, "PrefixDelegation") == 0))
             {
                 snprintf(path, sizeof(path)-1, "%sIPv6Prefix.%lu.", p_ipif_path, inst2);
                 *p_len += strlen(path)+1;
