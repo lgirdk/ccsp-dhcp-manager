@@ -17,21 +17,15 @@
 # limitations under the License.
 ##########################################################################
 
-#bin_PROGRAMS = service_dhcp_server
+AM_CFLAGS = -fno-exceptions -Wall -Wextra
+AM_LDFLAGS = -lpthread -lz -lccsp_common $(DBUS_LIBS)
+
 lib_LTLIBRARIES = libdhcp_server_utils.la
 
-AM_CFLAGS = -fno-exceptions -Os -Wall -Wextra
-AM_LDFLAGS =  -lpthread -lz -lccsp_common $(DBUS_LIBS)
 libdhcp_server_utils_la_CPPFLAGS = -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 \
                        -I${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include \
                        -I$(top_srcdir)/source/DHCPServerUtils/include
 
 libdhcp_server_utils_la_SOURCES = util.c dhcp_server_functions.c service_dhcp_server.c dhcpv6_server_functions.c dhcpv4_server_interface.c
 
-libdhcp_server_utils_la_LIBADD = -lccsp_common -ltelemetry_msgsender -lulog -lsyscfg -lsysevent -ltime_conversion -lprint_uptime 
-
-#service_dhcp_LDADD = $(top_builddir)/source/util/utils/libutopiautil.la \
-#                     $(top_builddir)/source/sysevent/lib/libsysevent.la \
-#                     $(top_builddir)/source/syscfg/lib/libsyscfg.la \
-#                     $(top_builddir)/source/util/print_uptime/libprint_uptime.la \
-#                    -ltelemetry_msgsender
+libdhcp_server_utils_la_LIBADD = -lccsp_common -ltelemetry_msgsender -lulog -lsyscfg -lsysevent -ltime_conversion -lprint_uptime

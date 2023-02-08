@@ -19,19 +19,10 @@
 
 bin_PROGRAMS = udhcpc_response_handler
 
-AM_CFLAGS = -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 -I${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include
-
-AM_LDFLAGS =  -lpthread -lz -lnanomsg
-
 udhcpc_response_handler_SOURCES = service_udhcpc.c
 
-udhcpc_response_handler_LDADD =  -ltelemetry_msgsender -lulog -lsyscfg -lsysevent -ltime_conversion
+udhcpc_response_handler_CFLAGS = -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 -I${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include
 
-#udhcpc_response_handler_LDADD = $(top_builddir)/source/util/utils/libutopiautil.la \
-#                    $(top_builddir)/source/services/lib/libsrvmgr.la \
-#                    $(top_builddir)/source/sysevent/lib/libsysevent.la \
-#                    $(top_builddir)/source/syscfg/lib/libsyscfg.la \
-#                    $(top_builddir)/source/ulog/libulog.la \
-#                    $(top_builddir)/source/util/print_uptime/libprint_uptime.la \
-#                    -ltelemetry_msgsender
+udhcpc_response_handler_LDFLAGS = -lpthread -lz -lnanomsg
 
+udhcpc_response_handler_LDADD = -ltelemetry_msgsender -lulog -lsyscfg -lsysevent -ltime_conversion
