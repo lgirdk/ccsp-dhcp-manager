@@ -378,7 +378,7 @@ CosaUtilGetFullPathNameByKeyword
                         memset(ucEntryNameValue,0,sizeof(ucEntryNameValue));
 
                         if ( ( 0 == CosaGetParamValueString(ucEntryParamName, ucEntryNameValue, &ulEntryNameLen)) &&
-                             AnscEqualString(ucEntryNameValue, (char*)pKeyword, TRUE ) )
+                             (strcmp(ucEntryNameValue, (char*)pKeyword) == 0))
                         {
                             pMatchedLowerLayer =  (PUCHAR)AnscCloneString(ucEntryFullPath);
                             break;
@@ -421,7 +421,7 @@ ANSC_STATUS is_usg_in_bridge_mode(BOOL *pBridgeMode)
                 "Device.X_CISCO_COM_DeviceControl.LanManagementEntry.1.LanMode",
                 retVal,
                 &retLen)){
-        if (AnscEqualString(retVal, "router", TRUE))
+        if (strcmp(retVal, "router") == 0)
             *pBridgeMode = FALSE;
         else
             *pBridgeMode = TRUE;
@@ -935,7 +935,7 @@ int lm_get_host_by_mac(char *mac, LM_cmd_common_result_t *pHost){
 
                         ulEntryNameLen = sizeof(ucEntryNameValue);
                         if ( ( 0 == CosaGetParamValueString(ucEntryParamName, ucEntryNameValue, &ulEntryNameLen)) &&
-                             AnscEqualString(ucEntryNameValue, (char*)mac, TRUE ) )
+                             (strcmp(ucEntryNameValue, (char*)mac) == 0))
                         {
                                 memset(ucEntryParamName,0,sizeof(ucEntryParamName));
 
