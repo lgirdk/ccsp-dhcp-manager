@@ -434,7 +434,7 @@ static wifi_client_t* lookup_wifi_client(const char *pMac)
         pClient = ACCESS_WIFI_CLIENT(pSLinkEntry);
         pSLinkEntry = AnscSListGetNextEntry(pSLinkEntry);
 
-        if (pClient && AnscEqualString(pClient->mac, pMac, FALSE)){
+        if (pClient && (strcasecmp(pClient->mac, pMac) == 0)){
             pthread_mutex_unlock(&g_wifiClientTable_mutex);
             return pClient;
         }
@@ -891,7 +891,7 @@ static BOOLEAN writeDHCPv4ServerPoolOptionToPSM(ULONG tblInstancenum, PCOSA_DML_
     }
 
     // hexdecimal value
-    if(!AnscEqualString((char*)pNewOption->Value, (char*)pOldOption->Value, TRUE))
+    if (strcmp((char*)pNewOption->Value, (char*)pOldOption->Value) != 0)
     {
         //printf("%s: write Value %s\n", __FUNCTION__, pNewOption->Value);
         rc = sprintf_s(param_name, sizeof(param_name), PSM_DHCPV4_SERVER_POOL_OPTION_VALUE, tblInstancenum, instancenum);
