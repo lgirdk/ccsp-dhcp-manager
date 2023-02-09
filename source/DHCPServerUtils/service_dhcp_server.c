@@ -1693,7 +1693,7 @@ void wait_till_end_state (char *process_to_wait)
     }
 }
 
-int sysevent_syscfg_init()
+static int sysevent_syscfg_init (void)
 {
         g_iSyseventfd = sysevent_open("127.0.0.1", SE_SERVER_WELL_KNOWN_PORT, SE_VERSION,
                                                "dhcp_server_service", &g_tSysevent_token);
@@ -1714,10 +1714,6 @@ int sysevent_syscfg_init()
         return ERROR;
     }
 
-    if (syscfg_init() != 0) {
-        DHCPMGR_LOG_ERROR("fail to init syscfg");
-        return ERROR;
-    }
       /* dbus init based on bus handle value */
     if(g_vBus_handle ==  NULL)
         dbusInit();
@@ -1733,7 +1729,6 @@ int sysevent_syscfg_init()
 
 int init_dhcp_server_service(void )
 {
-
     if (0 == g_iSyseventfd)
          sysevent_syscfg_init();
     return 0;
