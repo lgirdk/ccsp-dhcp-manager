@@ -427,7 +427,6 @@ CcspTraceInfo(("\nbefore cmd_dispatch command\n"));
 
     cmd_dispatch('e');
 
-//    syscfg_init();
 /*
     CcspTraceInfo(("DHCPMGR_DBG:-------Read Log Info\n"));
     char buffer[5] = {0};

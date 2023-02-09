@@ -198,8 +198,6 @@ static int dibbler_client_prepare_config (dibbler_client_info * client_info)
 
 #ifdef FEATURE_MAPT
     char mapt_feature_enable[BUFLEN_16] = {0};
-
-    syscfg_init();
 #endif
 
     fout = fopen(DIBBLER_TEMPLATE_CONFIG_FILE, "wb");
