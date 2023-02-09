@@ -1816,7 +1816,7 @@ void wait_till_end_state (char *process_to_wait)
     }
 }
 
-int sysevent_syscfg_init()
+static int sysevent_syscfg_init (void)
 {
         g_iSyseventV4fd = sysevent_open("127.0.0.1", SE_SERVER_WELL_KNOWN_PORT, SE_VERSION,
                                                "dhcp_server_service", &g_tSyseventV4_token);
