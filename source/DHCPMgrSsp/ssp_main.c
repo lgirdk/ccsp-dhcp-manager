@@ -102,7 +102,6 @@ int  cmd_dispatch(int  command)
     {
         case    'e' :
 
-#ifdef _ANSC_LINUX
             CcspTraceInfo(("Connect to bus daemon...\n"));
 
             {
@@ -135,7 +134,6 @@ int  cmd_dispatch(int  command)
                         CCSP_COMPONENT_PATH_DHCPMGR
                     );
             }
-#endif
 
             ssp_create();
             ssp_engage();
@@ -192,7 +190,6 @@ static void _print_stack_backtrace(void)
 #endif
 }
 
-#if defined(_ANSC_LINUX)
 static void daemonize(void) {
         switch (fork()) {
         case 0:
@@ -280,7 +277,6 @@ void sig_handler(int sig)
 
 }
 
-#endif
 
 #ifndef INCLUDE_BREAKPAD
 static int is_core_dump_opened(void)
@@ -398,44 +394,6 @@ int main(int argc, char* argv[])
 
     pComponentName          = CCSP_COMPONENT_NAME_DHCPMGR;
 
-#if  defined(_ANSC_WINDOWSNT)
-
-    AnscStartupSocketWrapper(NULL);
-
-    cmd_dispatch('e');
-
-//    syscfg_init();
-/*   
-    CcspTraceInfo(("DHCPMGR_DBG:-------Read Log Info\n"));
-    char buffer[5] = {0};
-    if( 0 == syscfg_get( NULL, "X_RDKCENTRAL-COM_LoggerEnable" , buffer, sizeof( buffer ) ) &&  ( buffer[0] != '\0' ) )
-    {
-        RDKLogEnable = (BOOL)atoi(buffer);
-    }
-    memset(buffer, 0, sizeof(buffer));
-    if( 0 == syscfg_get( NULL, "X_RDKCENTRAL-COM_LogLevel" , buffer, sizeof( buffer ) ) &&  ( buffer[0] != '\0' ) )
-    {
-        RDKLogLevel = (ULONG )atoi(buffer);
-    }
-    memset(buffer, 0, sizeof(buffer));
-    if( 0 == syscfg_get( NULL, "X_RDKCENTRAL-COM_DhcpMgr_LogLevel" , buffer, sizeof( buffer ) ) &&  ( buffer[0] != '\0' ) )
-    {
-        DHCPMGR_RDKLogLevel = (ULONG)atoi(buffer);
-    }
-    memset(buffer, 0, sizeof(buffer));
-    if( 0 == syscfg_get( NULL, "X_RDKCENTRAL-COM_DhcpMgr_LoggerEnable" , buffer, sizeof( buffer ) ) &&  ( buffer[0] != '\0' ) )
-    {
-        DHCPMGR_RDKLogEnable = (BOOL)atoi(buffer);
-    }
-    CcspTraceInfo(("DHCPMGR_DBG:-------Log Info values RDKLogEnable:%d,RDKLogLevel:%u,DHCPMGR_RDKLogLevel:%u,DHCPMGR_RDKLogEnable:%d\n",RDKLogEnable,RDKLogLevel,DHCPMGR_RDKLogLevel, DHCPMGR_RDKLogEnable ));
-*/
-    while ( cmdChar != 'q' )
-    {
-        cmdChar = getchar();
-
-        cmd_dispatch(cmdChar);
-    }
-#elif defined(_ANSC_LINUX)
 #if 0
     if(!drop_root())
     {
@@ -583,7 +541,6 @@ CcspTraceWarning(("\nAfter Cdm_Init\n"));
         }
     }
 
-#endif
         err = Cdm_Term();
         if (err != CCSP_SUCCESS)
         {
