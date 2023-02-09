@@ -1871,7 +1871,7 @@ void wait_till_end_state (char *process_to_wait)
     }
 }
 
-int sysevent_syscfg_init()
+static int sysevent_syscfg_init (void)
 {
 
         /*********************************************/
