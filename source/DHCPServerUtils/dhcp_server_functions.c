@@ -41,7 +41,6 @@
 
 
 #define HOSTS_FILE              "/etc/hosts"
-#define HOSTNAME_FILE           "/etc/hostname"
 #define DHCP_STATIC_HOSTS_FILE  "/etc/dhcp_static_hosts"
 #define DHCP_OPTIONS_FILE       "/var/dhcp_options"
 #define WAN_IF_NAME             "erouter0"
@@ -172,84 +171,55 @@ static int isValidLANIP(const char* ipStr)
 
 int prepare_hostname()
 {
-    char l_cHostName[16] = {0}, l_cCurLanIP[16] = {0}, l_clocFqdn[16] = {0}, l_cSecWebUI_Enabled[8] = {0};
-        FILE *l_fHosts_File = NULL;
-        FILE *l_fHosts_Name_File = NULL;
-        int l_iRes = 0;
-
-    syscfg_get(NULL, "hostname", l_cHostName, sizeof(l_cHostName));
-        sysevent_get(g_iSyseventfd, g_tSysevent_token, "current_lan_ipaddr", l_cCurLanIP, sizeof(l_cCurLanIP));
-        syscfg_get(NULL, "SecureWebUI_LocalFqdn", l_clocFqdn, sizeof(l_clocFqdn));
-        syscfg_get(NULL, "SecureWebUI_Enable", l_cSecWebUI_Enabled, sizeof(l_cSecWebUI_Enabled));
+    char l_cCurLanIP[16];
+    char l_cSecWebUI_Enabled[8];
+    FILE *l_fHosts_File = NULL;
 
     // Open in Write mode each time for avoiding duplicate entries
-       l_fHosts_File = fopen(HOSTS_FILE, "w+");
-    l_fHosts_Name_File = fopen(HOSTNAME_FILE, "w+");
 
-    if (0 != l_cHostName[0])
+    if ((l_fHosts_File = fopen(HOSTS_FILE, "w+")) == NULL)
     {
-                l_iRes = sethostname(l_cHostName, sizeof(l_cHostName));
-                if (ERROR == l_iRes)
-                {
-                     DHCPMGR_LOG_ERROR("Un-Successful in setting hostname error is:%d", errno);
-                }
-                if (NULL == l_fHosts_Name_File)
-                {
-                DHCPMGR_LOG_ERROR("Hosts Name file: %s creation failed ", HOSTNAME_FILE);
+        DHCPMGR_LOG_ERROR("Hosts file: %s creation failed", HOSTS_FILE);
+        return 0;
+    }
+
+    fprintf(l_fHosts_File, "127.0.0.1 localhost\n"
+                           "::1       localhost\n");
+
+    sysevent_get(g_iSyseventfd, g_tSysevent_token, "current_lan_ipaddr", l_cCurLanIP, sizeof(l_cCurLanIP));
+    syscfg_get(NULL, "SecureWebUI_Enable", l_cSecWebUI_Enabled, sizeof(l_cSecWebUI_Enabled));
+
+    if (strcmp(l_cSecWebUI_Enabled, "true") == 0)
+    {
+        char l_clocFqdn[16];
+
+        syscfg_get(NULL, "SecureWebUI_LocalFqdn", l_clocFqdn, sizeof(l_clocFqdn));
+
+        if (l_clocFqdn[0] != 0)
+        {
+            fprintf(l_fHosts_File, "%s %s\n", l_cCurLanIP, l_clocFqdn);
         }
-                else
-                {
-                        fprintf(l_fHosts_Name_File, "%s\n", l_cHostName);
-                        fclose(l_fHosts_Name_File);
-                        l_fHosts_Name_File = NULL;
-                        if (NULL != l_fHosts_File)
-                {
-                                if (strncmp(l_cSecWebUI_Enabled, "true", 4))
-                                {
-                                    fprintf(l_fHosts_File, "%s     %s\n", l_cCurLanIP, l_cHostName);
-                                }
-                        }
-                        else
-            {
-                                DHCPMGR_LOG_ERROR("Hosts file: %s creation failed ", HOSTS_FILE);
-                                return 0;
-                        }
-               }
     }
     else
-        {
-                  DHCPMGR_LOG_INFO("Hostname is empty not writing to %s file", HOSTNAME_FILE);
-        }
+    {
+        char l_cHostName[65];
 
-        if (NULL != l_fHosts_File)
+        if (gethostname(l_cHostName, sizeof(l_cHostName)) == 0)
         {
-                fprintf(l_fHosts_File, "127.0.0.1       localhost\n");
-                fprintf(l_fHosts_File, "::1             localhost\n");
-                if (NULL != l_clocFqdn)
-                {
-                        if (!strncmp(l_cSecWebUI_Enabled, "true", 4))
-                        {
-                            fprintf(l_fHosts_File, "%s              %s\n", l_cCurLanIP, l_clocFqdn);
-                        }
-                }
+            fprintf(l_fHosts_File, "%s %s\n", l_cCurLanIP, l_cHostName);
+        }
+    }
 
-                //The following lines are desirable for IPv6 capable hosts
-                fprintf(l_fHosts_File, "::1             ip6-localhost ip6-loopback\n");
-                fprintf(l_fHosts_File, "fe00::0         ip6-localnet\n");
-                fprintf(l_fHosts_File, "ff00::0         ip6-mcastprefix\n");
-                fprintf(l_fHosts_File, "ff02::1         ip6-allnodes\n");
-                fprintf(l_fHosts_File, "ff02::2         ip6-allrouters\n");
-                fprintf(l_fHosts_File, "ff02::3         ip6-allhosts\n");
-                fclose(l_fHosts_File);
-        }
-        else
-        {
-               DHCPMGR_LOG_ERROR("Hosts file: %s creation failed ", HOSTS_FILE);
-        }
-        if (NULL != l_fHosts_Name_File) {
-               fclose(l_fHosts_Name_File);
-        }
-        return 0;
+    fprintf(l_fHosts_File, "::1     ip6-localhost ip6-loopback\n"
+                           "fe00::0 ip6-localnet\n"
+                           "ff00::0 ip6-mcastprefix\n"
+                           "ff02::1 ip6-allnodes\n"
+                           "ff02::2 ip6-allrouters\n"
+                           "ff02::3 ip6-allhosts\n");
+
+    fclose(l_fHosts_File);
+
+    return 0;
 }
 
 void calculate_dhcp_range (FILE *local_dhcpconf_file, char *prefix)
