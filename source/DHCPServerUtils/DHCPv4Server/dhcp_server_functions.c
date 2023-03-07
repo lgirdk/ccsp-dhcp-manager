@@ -2021,6 +2021,15 @@ void check_and_get_wan_dhcp_dns( char *pl_cWan_Dhcp_Dns )
 
 void prepare_static_dns_urls(FILE *fp_local_dhcp_conf)
 {
+#if 0
+	/*
+	   Disable support for /etc/static_dns_urls (Comcast specific and not
+	   required in generic builds). It would perhaps be cleaner to just not
+	   install static_dns_urls in the rootfs however certain badly behaved
+	   SOC layers provide their own version and install it directly from a
+	   .bbappend so completely ignoring the file is a more robust solution.
+	*/
+
         char  l_cLine[ 128 ]            = { 0 };
         FILE *l_fStaticDns_Urls         = NULL;
 
@@ -2049,4 +2058,6 @@ void prepare_static_dns_urls(FILE *fp_local_dhcp_conf)
         {
                 DHCPMGR_LOG_ERROR("opening of %s file failed with error:%d", STATIC_DNS_URLS_FILE, errno);
         }
+
+#endif
 }
