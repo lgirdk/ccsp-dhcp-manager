@@ -19,7 +19,7 @@
 #include <syscfg/syscfg.h>
 #include "cosa_webconfig_api.h"
 #include "webconfig_framework.h"
-#include "base64.h"
+#include <trower-base64/base64.h>
 #include "safec_lib_common.h"
 
 void initMultiCompMaster(void);
