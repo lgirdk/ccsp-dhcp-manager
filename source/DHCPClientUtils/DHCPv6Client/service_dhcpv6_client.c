@@ -121,7 +121,7 @@ void dhcpv6_client_service_start ()
     CcspTraceInfo(("SERVICE_DHCP6C : SERVICE START\n"));
 
     char l_cLastErouterMode[BUFF_LEN_8] = {0}, l_cWanLinkStatus[BUFF_LEN_16] = {0}, l_cWanIfname[BUFF_LEN_16] = {0},
-         l_cBridgeMode[BUFF_LEN_16] = {0}, l_cWanState[BUFF_LEN_16] = {0}, l_cDibblerEnable[BUFF_LEN_16] = {0},
+         l_cBridgeMode[BUFF_LEN_16] = {0}, l_cWanState[BUFF_LEN_16] = {0},
          l_cPhylinkWanState[BUFF_LEN_16] = {0};
 
     int ret = 0;
@@ -132,7 +132,6 @@ void dhcpv6_client_service_start ()
     }
 
     syscfg_get(NULL, "last_erouter_mode", l_cLastErouterMode, sizeof(l_cLastErouterMode));
-    syscfg_get(NULL, "dibbler_client_enable", l_cDibblerEnable, sizeof(l_cDibblerEnable));
     sysevent_get(g_iSyseventfd, g_tSysevent_token, "current_ipv4_link_state", l_cPhylinkWanState, sizeof(l_cPhylinkWanState));
     sysevent_get(g_iSyseventfd, g_tSysevent_token, "wan_ifname", l_cWanIfname, sizeof(l_cWanIfname));
     sysevent_get(g_iSyseventfd, g_tSysevent_token, "phylink_wan_state", l_cWanLinkStatus, sizeof(l_cWanLinkStatus));
@@ -170,17 +169,6 @@ void dhcpv6_client_service_start ()
         {
             creat(DHCP6C_PROGRESS_FILE,S_IWUSR | S_IWGRP | S_IWOTH);
             CcspTraceInfo(("SERVICE_DHCP6C : Starting DHCPv6 Client from service_dhcpv6_client binary\n"));
-#if defined(_COSA_INTEL_XB3_ARM_) || defined(INTEL_PUMA7)
-            if (strncmp(l_cDibblerEnable, "true", 4))
-            {
-                CcspTraceInfo(("SERVICE_DHCP6C : Starting ti_dhcp6c\n"));
-                ret = v_secure_system("ti_dhcp6c -i %s -p %s -plugin /fss/gw/lib/libgw_dhcp6plg.so",l_cWanIfname,DHCPV6_PID_FILE);
-                if(ret !=0)
-                {
-                    CcspTraceError(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
-                }
-            }
-#else
             if(0 != mkdir(DIBBLER_INFO_DIR, 0777))
             {
                 CcspTraceInfo(("SERVICE_DHCP6C : Failed to create %s Directory\n",DIBBLER_INFO_DIR));
@@ -199,7 +187,6 @@ void dhcpv6_client_service_start ()
                 CcspTraceError(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
             }
             CcspTraceInfo(("SERVICE_DHCP6C :%s Dibbler Client Started Binary called is %s\n", __func__, DHCPV6_BINARY));
-#endif
             remove_file(DHCP6C_PROGRESS_FILE);
         }
         else
@@ -212,61 +199,11 @@ void dhcpv6_client_service_start ()
 void dhcpv6_client_service_stop ()
 {
     CcspTraceInfo(("SERVICE_DHCP6C : SERVICE STOP\n"));
-    char l_cDibblerEnable[BUFF_LEN_8] = {0}, l_cDSLiteEnable[BUFF_LEN_8] = {0};
+    char l_cDSLiteEnable[BUFF_LEN_8] = {0};
     int ret = 0;
 
-    syscfg_get(NULL, "dibbler_client_enable", l_cDibblerEnable, sizeof(l_cDibblerEnable));
     syscfg_get(NULL, "dslite_enable", l_cDSLiteEnable, sizeof(l_cDSLiteEnable));
 
-#if defined(_COSA_INTEL_XB3_ARM_) || defined(INTEL_PUMA7)
-    if (strncmp(l_cDibblerEnable, "true", 4))
-    {
-        if (access(DHCPV6_PID_FILE, F_OK) == 0)
-        {
-            int pid = -1;
-
-            if (!strncmp(l_cDSLiteEnable, "1", 1))
-            {
-                // We need to make sure the erouter0 interface is UP when the DHCPv6 client process plan to send
-                // the RELEASE message. Otherwise it will wait to send the message and get messed when another
-                // DHCPv6 client process plan to start in service_start().
-                char l_cCommand[BUFF_LEN_128] = {0}, l_cErouter0Status[BUFF_LEN_8] = {0};
-                snprintf(l_cCommand, sizeof(l_cCommand),"ip -d link show erouter0 | grep state | awk '/erouter0/{print $9}'");
-                copy_command_output(l_cCommand, l_cErouter0Status, sizeof(l_cErouter0Status));
-                l_cErouter0Status[strlen(l_cErouter0Status)] = '\0';
-                CcspTraceInfo(("SERVICE_DHCP6C : l_cErouter0Status is %s\n",l_cErouter0Status));
-
-                if (strncmp(l_cErouter0Status, "UP", 2))
-                {
-#if defined(CORE_NET_LIB)
-                   interface_up("erouter0");
-#else
-                   ret = v_secure_system("ip link set erouter0 up");
-                   if(ret !=0)
-                   {
-                       CcspTraceError(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
-                   }
-#endif
-                }
-            }
-            CcspTraceInfo(("SERVICE_DHCP6C : Sending SIGTERM to %s\n",DHCPV6_PID_FILE));
-
-            while (0 < (pid = pid_of(DHCPV6_BINARY, NULL)))
-            {
-                fprintf(stderr, "SERVICE_DHCP6C : Terminating ti_dhcp6c process with pid %d\n",pid);
-                kill(pid, SIGTERM);
-            }
-            remove_file(DHCPV6_PID_FILE);
-
-            if (!strncmp(l_cDSLiteEnable, "1", 1))
-            {
-                // After stop the DHCPv6 client, need to clear the sysevent tr_erouter0_dhcpv6_client_v6addr
-                // So that it can be triggered again once DHCPv6 client got the same IPv6 address with the old address
-                sysevent_set(g_iSyseventfd, g_tSysevent_token, "tr_erouter0_dhcpv6_client_v6addr", "", 0);
-            }
-        }
-    }
-#else
     ret = v_secure_system("%s stop",DHCPV6_BINARY);
     CcspTraceInfo(("SERVICE_DHCP6C : Stopping dhcpv6 client\n"));
     if(ret !=0)
@@ -274,7 +211,6 @@ void dhcpv6_client_service_stop ()
         CcspTraceError(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
     }
     remove_file(DHCPV6_PID_FILE);
-#endif
 }
 
 void dhcpv6_client_service_update()
