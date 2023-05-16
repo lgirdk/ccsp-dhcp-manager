@@ -110,25 +110,7 @@ int get_dhcpc_pidfile
 )
 {
     CcspTraceInfo(("%s: BEGIN \n", __FUNCTION__));
-    #if defined(_PLATFORM_IPQ_)
-        strncpy(pidfile,"/tmp/udhcpc.erouter0.pid",size);
-
-    #elif (defined _COSA_INTEL_XB3_ARM_) || (defined INTEL_PUMA7)
-    {
-        char udhcpflag[BUFF_LEN_16]="";
-        syscfg_get( NULL, "UDHCPEnable", udhcpflag, sizeof(udhcpflag));
-        if( 0 == strcmp(udhcpflag,"true"))
-        {
-            strncpy(pidfile,"/tmp/udhcpc.erouter0.pid",size);
-        }
-        else
-        {
-            strncpy(pidfile,"/var/run/eRT_ti_udhcpc.pid",size);
-        }
-    }
-    #else
-        strncpy(pidfile,"/tmp/udhcpc.erouter0.pid",size);
-    #endif
+    strncpy(pidfile,"/tmp/udhcpc.erouter0.pid",size);
     return 0;
 }
 
@@ -404,24 +386,7 @@ void dhcpv4_client_service_start(void *arg)
     #endif
     char mapt_mode[16] = {0};
 
-    #if defined(_PLATFORM_IPQ_)
-        pid = pid_of("udhcpc", sd->ifname);
-    #elif (defined _COSA_INTEL_XB3_ARM_) || (defined INTEL_PUMA7)
-    {
-        char udhcpflag[BUFF_LEN_16]="";
-        syscfg_get( NULL, "UDHCPEnable", udhcpflag, sizeof(udhcpflag));
-        if( 0 == strcmp(udhcpflag,"true"))
-        {
-            pid = pid_of("udhcpc", sd->ifname);
-        }
-        else
-        {
-            pid = pid_of("ti_udhcpc", sd->ifname);
-        }
-    }
-    #else
-            pid = pid_of("udhcpc", sd->ifname);
-    #endif
+    pid = pid_of("udhcpc", sd->ifname);
 
     get_dhcpc_pidfile(DHCPC_PID_FILE,sizeof(DHCPC_PID_FILE));
     if (access(DHCPC_PID_FILE, F_OK) == 0)
@@ -688,12 +653,6 @@ int dhcpv4_client_start
             }
         #elif defined (_COSA_INTEL_XB3_ARM_) || defined (INTEL_PUMA7)
         {
-            char udhcpflag[BUFF_LEN_16]="";
-            syscfg_get( NULL, "UDHCPEnable", udhcpflag, sizeof(udhcpflag));
-
-            if( 0 == strcmp(udhcpflag,"true"))
-            {
-                CcspTraceInfo(("UDHCPC Enable = TRUE \n"));
                 char options[VENDOR_OPTIONS_LENGTH];
                 if ((err = dhcp_parse_vendor_info(options, VENDOR_OPTIONS_LENGTH,cEthWanMode)) == 0)
                 {
@@ -701,15 +660,6 @@ int dhcpv4_client_start
                                   "-O 125 -O 2 -x %s -s /usr/bin/service_udhcpc",
                                   sd->ifname, DHCPC_PID_FILE, options);
                 }
-            }
-            else
-            {
-                //#if defined (INTEL_PUMA7)
-                //Intel Proposed RDKB Generic Bug Fix from XB6 SDK
-                err = v_secure_system("ti_udhcpc -plugin /lib/libert_dhcpv4_plugin.so -i %s "
-                                      "-H DocsisGateway -p %s -B -b 4",
-                                      sd->ifname, DHCPC_PID_FILE);
-            }
         }
         #else
             char options[VENDOR_OPTIONS_LENGTH];
@@ -797,24 +747,7 @@ int dhcpv4_client_stop
 
     if (pid <= 0)
     {
-        #if defined(_PLATFORM_IPQ_)
-            pid = pid_of("udhcpc", ifname);
-        #elif (defined _COSA_INTEL_XB3_ARM_) || (defined INTEL_PUMA7)
-        {
-            char udhcpflag[BUFF_LEN_16]="";
-            syscfg_get( NULL, "UDHCPEnable", udhcpflag, sizeof(udhcpflag));
-            if( 0 == strcmp(udhcpflag,"true"))
-            {
-                pid = pid_of("udhcpc", ifname);
-            }
-            else
-            {
-                pid = pid_of("ti_udhcpc", ifname);
-            }
-        }
-        #else
-            pid = pid_of("udhcpc", ifname);
-        #endif
+        pid = pid_of("udhcpc", ifname);
     }
     if (pid > 0)
     {
