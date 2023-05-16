@@ -1643,16 +1643,6 @@ CosaDmlDhcpcGetInfo
     }
     if (pDhcpc)
     {
-#if defined(INTEL_PUMA7)
-    {
-        char udhcpflag[16] = {0};
-        syscfg_get( NULL, "UDHCPEnable", udhcpflag, sizeof(udhcpflag));
-        if(strcmp(udhcpflag,"true"))
-        {
-            pDHCPCv4_Bin = "ti_udhcpc";
-        }
-    }
-#endif
         pid = pid_of(pDHCPCv4_Bin, (char *)pDhcpc->Cfg.Interface);
         //sysevent_get(g_iSyseventfd, g_tSysevent_token, "wan-status", l_cWanState, sizeof(l_cWanState));
         commonSyseventGet("wan-status", l_cWanState, sizeof(l_cWanState));
