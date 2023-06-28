@@ -17,8 +17,6 @@
 # limitations under the License.
 ##########################################################################
 
-#bin_PROGRAMS = service_dhcp_server
-
 SUBDIRS = utils
 
 if DHCPV4_SERVER_SUPPORT
