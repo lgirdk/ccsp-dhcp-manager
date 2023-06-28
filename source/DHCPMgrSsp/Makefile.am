@@ -17,29 +17,27 @@
 # limitations under the License.
 ##########################################################################
 
-AM_CFLAGS = -D_ANSC_LINUX
-AM_CFLAGS += -D_ANSC_USER
-AM_LDFLAGS = -lccsp_common
+AM_CFLAGS =
 
-AM_LDFLAGS += -lhal_plaform -lsysevent -lutapi -lutctx -lulog
 ACLOCAL_AMFLAGS = -I m4
-hardware_platform = i686-linux-gnu
+
 bin_PROGRAMS = CcspDHCPMgr
 
-CcspDHCPMgr_CPPFLAGS =  -I$(top_srcdir)/source/TR-181/include -I$(top_srcdir)/source/TR-181/middle_layer_src $(CPPFLAGS) \
-                        -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/rbus \
-                        -I$(top_srcdir)/source/DHCPMgrInterface \
-                        -I$(top_srcdir)/source/DHCPMgrInterface/include \
-                        -I$(top_srcdir)/source/DHCPClientUtils \
-                        -I$(top_srcdir)/source/DHCPServerUtils/include \
-                        -I$(top_srcdir)/source/DHCPServerUtils/DHCPv4Server/include \
-                        -I$(top_srcdir)/source/DHCPServerUtils/DHCPv6Server/include \
-                        -I$(top_srcdir)/source/DHCPServerUtils/utils/include \
-                        -I$(top_srcdir)/source/DHCPClientUtils/DHCPv4Client/include \
-                        -I$(top_srcdir)/source/DHCPClientUtils/DHCPv6Client/include \
-                        -I$(top_srcdir)/source/DHCPMgrUtils/include	
+CcspDHCPMgr_CPPFLAGS = -I$(top_srcdir)/source/TR-181/include \
+                       -I$(top_srcdir)/source/TR-181/middle_layer_src \
+                       -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/rbus \
+                       -I$(top_srcdir)/source/DHCPMgrInterface \
+                       -I$(top_srcdir)/source/DHCPMgrInterface/include \
+                       -I$(top_srcdir)/source/DHCPClientUtils \
+                       -I$(top_srcdir)/source/DHCPServerUtils/include \
+                       -I$(top_srcdir)/source/DHCPServerUtils/DHCPv4Server/include \
+                       -I$(top_srcdir)/source/DHCPServerUtils/DHCPv6Server/include \
+                       -I$(top_srcdir)/source/DHCPServerUtils/utils/include \
+                       -I$(top_srcdir)/source/DHCPClientUtils/DHCPv4Client/include \
+                       -I$(top_srcdir)/source/DHCPClientUtils/DHCPv6Client/include \
+                       -I$(top_srcdir)/source/DHCPMgrUtils/include	
 
-CcspDHCPMgr_DEPENDENCIES= \
+CcspDHCPMgr_DEPENDENCIES = \
         $(EXTRA_DEPENDENCIES) \
         ${top_builddir}/source/DHCPMgrInterface/libifl.la \
         ${top_builddir}/source/TR-181/middle_layer_src/libCcspDhcpMgr_middle_layer_src.la \
@@ -51,8 +49,7 @@ CcspDHCPMgr_DEPENDENCIES= \
         ${top_builddir}/source/DHCPClientUtils/DHCPv6Client/libCcspDhcpMgr_Dhcpv6Client.la \
         ${top_builddir}/source/DHCPMgrUtils/libCcspDhcpMgrUtils.la
 
-
 CcspDHCPMgr_CFLAGS = $(SYSTEMD_CFLAGS) $(NONROOT_CFLAGS)
 CcspDHCPMgr_SOURCES = ssp_messagebus_interface.c ssp_main.c ssp_action.c dm_pack_datamodel.c
 CcspDHCPMgr_LDFLAGS = -rdynamic $(SYSTEMD_LDFLAGS) -pthread
-CcspDHCPMgr_LDADD =  $(CcspDHCPMgr_DEPENDENCIES) -lccsp_common -lsyscfg -ldl -lrbus
+CcspDHCPMgr_LDADD = $(CcspDHCPMgr_DEPENDENCIES) -lccsp_common -lsyscfg -ldl -lrbus

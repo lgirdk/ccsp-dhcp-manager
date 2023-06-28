@@ -1,4 +1,4 @@
-#
+##########################################################################
 # Copyright 2020 Comcast Cable Communications Management, LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,10 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-#
+##########################################################################
 
 noinst_LTLIBRARIES = libCcspDhcpMgr_utils.la
+
 libCcspDhcpMgr_utils_la_CPPFLAGS = -I$(top_srcdir)/source/DHCPServerUtils/utils/include -I$(top_srcdir)/source/DHCPServerUtils/utils
 
 libCcspDhcpMgr_utils_la_SOURCES = util.c
-
