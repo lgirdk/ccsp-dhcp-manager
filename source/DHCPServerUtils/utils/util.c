@@ -68,40 +68,6 @@ int vsystem(const char *fmt, ...)
     return system(cmd);
 }
 
-int sysctl_iface_set(const char *path, const char *ifname, const char *content)
-{
-    /* _sysctl(2) is not encouraged to use, write /proc/sys directly
-     * also avoid to use sysctl(3) or echo for performance */
-    FILE *fp;
-    char file[256];
-
-    if (ifname)
-        snprintf(file, sizeof(file), path, ifname);
-    else
-        snprintf(file, sizeof(file), path);
-
-    if (strncmp(file, "/proc/sys/", strlen("/proc/sys/") != 0)) {
-        DHCPMGR_LOG_ERROR("not /proc/sys/ dir");
-        return -1;
-    }
-
-    if ((fp = fopen(file, "wb")) == NULL) {
-        DHCPMGR_LOG_ERROR("cannot open file %s", file);
-        return -1;
-    }
-
-    if (fwrite(content, strlen(content), 1, fp) != 1) {
-        DHCPMGR_LOG_ERROR(" fail to write %s", content);
-        fclose(fp);
-        return -1;
-    }
-
-    fclose(fp);
-
-    //DHCPMGR_LOG_INFO("%s: file %s content %s", file, content);
-    return 0;
-}
-
 int iface_get_hwaddr(const char *ifname, char *mac, size_t size)
 {
     int sockfd;
