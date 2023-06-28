@@ -1,4 +1,4 @@
-#
+##########################################################################
 # Copyright 2020 Comcast Cable Communications Management, LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +14,12 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-#
+##########################################################################
+
+AM_CFLAGS = -fno-exceptions -Wall -Wextra
+AM_LDFLAGS = -lz -lpthread -lccsp_common $(DBUS_LIBS)
+
 noinst_LTLIBRARIES = libCcspDhcpMgr_Dhcpv6Server.la
-
-AM_CFLAGS = -fno-exceptions -Os -Wall -Wextra
-
-AM_LDFLAGS =  -lpthread -lz -lccsp_common $(DBUS_LIBS)
 
 libCcspDhcpMgr_Dhcpv6Server_la_CPPFLAGS = -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 \
                                           -I${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include \
@@ -37,4 +37,3 @@ libCcspDhcpMgr_Dhcpv6Server_la_CPPFLAGS = -I${PKG_CONFIG_SYSROOT_DIR}$(includedi
 libCcspDhcpMgr_Dhcpv6Server_la_SOURCES = dhcpv6server_function.c
 
 libCcspDhcpMgr_Dhcpv6Server_la_LIBADD = -lccsp_common -ltelemetry_msgsender -lulog -lsyscfg -lsysevent -ltime_conversion -lprint_uptime
-

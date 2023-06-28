@@ -1,4 +1,4 @@
-#
+##########################################################################
 # Copyright 2020 Comcast Cable Communications Management, LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,27 +14,14 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-#
-noinst_LTLIBRARIES = libCcspDhcpMgr_Dhcpv4Client.la
+##########################################################################
 
-AM_CFLAGS = -fno-exceptions -Os -Wall -Wextra
+AM_CFLAGS = -fno-exceptions -Wall -Wextra
+AM_LDFLAGS = -lhal_platform -lz -lpthread -lccsp_common $(DBUS_LIBS)
 
-AM_CFLAGS += -D_ANSC_LINUX
-AM_CFLAGS += -D_ANSC_USER
-AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
-AM_CFLAGS += -D_CCSP_CWMP_TCP_CONNREQ_HANDLER
-AM_CFLAGS += -D_ANSC_IPV6_COMPATIBLE_
-AM_CFLAGS += -DBUILD_WEB
-AM_LDFLAGS =
-AM_LDFLAGS += -lhal_platform
-AM_LDFLAGS += -lz
-
-AM_CPPFLAGS = -Wall -Werror
 ACLOCAL_AMFLAGS = -I m4
-hardware_platform = i686-linux-gnu
 
-
-AM_LDFLAGS +=  -lpthread -lz -lccsp_common $(DBUS_LIBS)
+noinst_LTLIBRARIES = libCcspDhcpMgr_Dhcpv4Client.la
 
 libCcspDhcpMgr_Dhcpv4Client_la_CPPFLAGS = -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 \
                                           -I${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include \
@@ -47,4 +34,3 @@ libCcspDhcpMgr_Dhcpv4Client_la_CPPFLAGS = -I${PKG_CONFIG_SYSROOT_DIR}$(includedi
 libCcspDhcpMgr_Dhcpv4Client_la_SOURCES = service_dhcpv4_client.c dhcp_client_common.c dhcpv4_client_utils.c udhcpc_client_utils.c service_udhcpc.c
 
 libCcspDhcpMgr_Dhcpv4Client_la_LIBADD = -lccsp_common -ltelemetry_msgsender -lulog -lsyscfg -lsysevent -ltime_conversion -lprint_uptime -lhal_platform
-
