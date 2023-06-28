@@ -19,7 +19,6 @@
 
 SUBDIRS = DHCPMgrInterface DHCPMgrUtils TR-181
 
-
 if DHCP_SERVER_SUPPORT
 SUBDIRS += DHCPServerUtils
 endif
