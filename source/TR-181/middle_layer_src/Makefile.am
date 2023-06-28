@@ -17,15 +17,12 @@
 # limitations under the License.
 ##########################################################################
 
-AM_CFLAGS = -D_ANSC_LINUX
-AM_CFLAGS += -D_ANSC_USER
-
-AM_LDFLAGS = -lccsp_common -lsyscfg -lsysevent
+AM_CFLAGS =
 
 ACLOCAL_AMFLAGS = -I m4
-hardware_platform = i686-linux-gnu
 
 noinst_LTLIBRARIES = libCcspDhcpMgr_middle_layer_src.la
+
 libCcspDhcpMgr_middle_layer_src_la_CPPFLAGS = -I$(top_srcdir)/source/TR-181/include \
                                               -I$(top_srcdir)/source/TR-181/middle_layer_src \
                                               -I$(top_srcdir)/source/DHCPMgrUtils/include \

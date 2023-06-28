@@ -17,11 +17,10 @@
 # limitations under the License.
 ##########################################################################
 
+AM_CFLAGS = -fno-exceptions -Wall -Wextra
+AM_LDFLAGS = -lpthread -lccsp_common -lnanomsg
+
 noinst_LTLIBRARIES = libifl.la
-
-AM_CFLAGS = -fno-exceptions -Os -Wall -Wextra
-
-AM_LDFLAGS =  -lpthread -lccsp_common -lnanomsg
 
 libifl_la_CPPFLAGS = -I$(top_srcdir)/source/DHCPMgrInterface/include
 

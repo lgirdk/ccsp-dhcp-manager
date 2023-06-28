@@ -17,18 +17,12 @@
 # limitations under the License.
 ##########################################################################
 
-AM_CFLAGS = -D_ANSC_LINUX
-AM_CFLAGS += -D_ANSC_USER
-AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
-AM_LDFLAGS = -lccsp_common
-AM_LDFLAGS = -ltime_conversion -lhal_plaform -lsysevent -lutapi -lhal_moca -lutctx -lulog -llmapi
-AM_LDFLAGS = -lwebconfig_framework
-AM_LDFLAGS = -lmsgpackc
+AM_CFLAGS =
 
 ACLOCAL_AMFLAGS = -I m4
-hardware_platform = i686-linux-gnu
 
 noinst_LTLIBRARIES = libCcspDhcpMgr_board_sbapi.la
+
 libCcspDhcpMgr_board_sbapi_la_CPPFLAGS = -I$(top_srcdir)/source/TR-181/include \
                                          -I$(top_srcdir)/source/TR-181/middle_layer_src \
                                          -I$(top_srcdir)/source/DHCPServerUtils/ \
