@@ -1498,7 +1498,7 @@ int prepare_dhcp_conf (char *input)
                fprintf(l_fLocal_Dhcp_ConfFile, "%sdhcp-optsfile=%s\n", l_cDns_Only_Prefix, DHCP_OPTIONS_FILE);
         }
 //Ethernet Backhaul changes for plume pods
-#if defined (_XB6_PRODUCT_REQ_) || defined (_HUB4_PRODUCT_REQ_)
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_HUB4_PRODUCT_REQ_)) && !defined(_LG_OFW_)
         fprintf(l_fLocal_Dhcp_ConfFile, "dhcp-option=vendor:Plume,43,tag=123\n");
         fprintf(l_fLocal_Dhcp_ConfFile, "dhcp-option=vendor:PP203X,43,tag=123\n");
         fprintf(l_fLocal_Dhcp_ConfFile, "dhcp-option=vendor:HIXE12AWR,43,tag=123\n");
