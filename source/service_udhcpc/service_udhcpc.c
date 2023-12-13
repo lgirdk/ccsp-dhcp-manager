@@ -70,17 +70,15 @@
 #include <stdint.h>
 
 #ifdef FEATURE_SUPPORT_ONBOARD_LOGGING
-#include <rdk_debug.h>
+#include "cimplog.h"
 #define LOGGING_MODULE "Utopia"
-#define OnboardLog(...)     rdk_log_onboard(LOGGING_MODULE, __VA_ARGS__)
+#define OnboardLog(...)     onboarding_log(LOGGING_MODULE, __VA_ARGS__)
 #else
 #define OnboardLog(...)
 #endif
 #include "print_uptime.h"
 
-#ifdef FEATURE_RDKB_WAN_MANAGER
 #include "ipc_msg.h"
-#endif
 
 #define RESOLVE_CONF_BIN_FULL_PATH  "/sbin/resolvconf"
 #define IP_UTIL_BIN_FULL_PATH "/sbin/ip.iproute2"
@@ -88,6 +86,7 @@
 #define RESOLV_CONF "/etc/resolv.conf"
 #define RESOLV_CONF_TMP "/tmp/resolv_temp.conf"
 #define  BUFSIZE 4196
+#define MAX_SEND_THRESHOLD 5
 
 static int            sysevent_fd = -1;
 static char          *sysevent_name = "udhcpc";
@@ -109,7 +108,6 @@ typedef struct udhcpc_script_t
     bool broot_is_nfs;
 }udhcpc_script_t;
 
-#ifdef FEATURE_RDKB_WAN_MANAGER
 #define DHCP_INTERFACE_NAME "interface"
 #define DHCP_IP_ADDRESS "ip"
 #define DHCP_SUBNET "subnet"
@@ -124,6 +122,17 @@ typedef struct udhcpc_script_t
 #define DHCP_RENEWL_TIME "renewaltime"
 #define DHCP_REBINDING_TIME "rebindingtime"
 #define DHCP_SERVER_ID "serverid"
+#define DHCP_SIPSRV "sipsrv"
+#define DHCP_STATIC_ROUTES "staticroutes"
+
+#ifdef FEATURE_RDKB_WAN_MANAGER
+/**
+ * @brief Send dhcpv4 data to RdkWanmanager.
+ * @param structure contains the dhcpv4 data
+ * @return 0 on success else returned -1
+ */
+static int send_dhcp_data_to_wanmanager (ipc_dhcpv4_data_t *dhcpv4_data);
+#endif
 
 /**
  * @brief Retrieve DHCPv4 data from environment variables and fill
@@ -133,14 +142,8 @@ typedef struct udhcpc_script_t
  * @return 0 on success else returns -1.
  */
 static int get_and_fill_env_data (ipc_dhcpv4_data_t *dhcpv4_data, udhcpc_script_t* pinfo);
-/**
- * @brief Send dhcpv4 data to RdkWanmanager.
- * @param structure contains the dhcpv4 data
- * @return 0 on success else returned -1
- */
-static int send_dhcp_data_to_wanmanager (ipc_dhcpv4_data_t *dhcpv4_data);
-#endif
 
+static int send_dhcp_data_to_dhcpmanager (ipc_dhcpv4_data_t *dhcpv4_data);
 void compare_and_delete_old_dns(udhcpc_script_t *pinfo);
 int read_cmd_output(char *cmd, char *output_buf, int size_buf);
 int set_dns_sysevents(udhcpc_script_t *pinfo);
@@ -705,9 +708,7 @@ void compare_and_delete_old_dns(udhcpc_script_t *pinfo)
 
       for(i=0;i<dns_server_no;i++)
       {
-              char* ipv4_dns_match = NULL;
-              ipv4_dns_match = (char *)(strstr(buffer,dns_server_list[i].data) || strstr(buffer,"nameserver 127.0.0.1"));
-              if(ipv4_dns_match !=NULL)
+              if(strstr(buffer,dns_server_list[i].data) || strstr(buffer,"nameserver 127.0.0.1"))
               {
                       search_ipv4_dns=1;
               }
@@ -891,6 +892,7 @@ int handle_wan(udhcpc_script_t *pinfo)
     char *mask = getenv("mask");
     char *ip = getenv("ip");
     char router[256] = {'\0'};
+    int ret = 0;
 
     if (!pinfo)
         return -1;
@@ -1006,6 +1008,16 @@ int handle_wan(udhcpc_script_t *pinfo)
     //update .ipv4dnsserver file
     update_dns_tofile(pinfo);
 
+    ipc_dhcpv4_data_t data;
+    memset (&data, 0, sizeof(data));
+
+    get_and_fill_env_data (&data, pinfo);
+    ret = send_dhcp_data_to_dhcpmanager(&data);
+    if (ret != 0)
+    {
+         OnboardLog("[%s][%d] Failed to send dhcpv4 data to dhcpmanager \n", __FUNCTION__,__LINE__);
+    }
+
     if (pinfo->resconf_exist)
     {
         snprintf(buf,sizeof(buf),"/sbin/resolvconf -a %s.udhcpc",getenv("interface"));
@@ -1118,7 +1130,7 @@ int init_udhcpc_script_info(udhcpc_script_t *pinfo, char *option)
     }
     return 0;
 }
-#ifdef FEATURE_RDKB_WAN_MANAGER
+
 static int get_and_fill_env_data (ipc_dhcpv4_data_t *dhcpv4_data, udhcpc_script_t* pinfo)
 {
     if (dhcpv4_data == NULL || pinfo == NULL)
@@ -1130,6 +1142,16 @@ static int get_and_fill_env_data (ipc_dhcpv4_data_t *dhcpv4_data, udhcpc_script_
     if (getenv(DHCP_INTERFACE_NAME) != NULL)
     {
         strncpy(dhcpv4_data->dhcpcInterface, getenv(DHCP_INTERFACE_NAME), sizeof(dhcpv4_data->dhcpcInterface));
+    }
+
+    if (getenv(DHCP_SIPSRV) != NULL)
+    {
+        strncpy(dhcpv4_data->sipsrv, getenv(DHCP_SIPSRV), sizeof(dhcpv4_data->sipsrv));
+    }
+
+    if (getenv(DHCP_STATIC_ROUTES) != NULL)
+    {
+        strncpy(dhcpv4_data->staticroutes, getenv(DHCP_STATIC_ROUTES), sizeof(dhcpv4_data->staticroutes));
     }
 
     /** DHCP server id */
@@ -1193,8 +1215,14 @@ static int get_and_fill_env_data (ipc_dhcpv4_data_t *dhcpv4_data, udhcpc_script_
             char dns[256] = {'\0'};
             char *tok = NULL;
             snprintf(dns, sizeof(dns), "%s", pinfo->dns);
+            strncpy(dhcpv4_data->dnsServer, dns, sizeof(dhcpv4_data->dnsServer));
             fprintf(stderr, "[%s][%s] \n", dns, getenv(DHCP_DNS_SERVER)); 
+            if (tok == NULL)
+            {
+                OnboardLog("%s %d: tok is NULL..\n", __FUNCTION__, __LINE__);
+            }
 
+#if 0
             /** dns server1 */
             tok = strtok (dns, " ");
             if (tok)
@@ -1207,6 +1235,7 @@ static int get_and_fill_env_data (ipc_dhcpv4_data_t *dhcpv4_data, udhcpc_script_
             {
                 strncpy(dhcpv4_data->dnsServer1, tok, sizeof(dhcpv4_data->dnsServer1));
             }
+#endif
         }
         else
         {
@@ -1305,6 +1334,7 @@ static int get_and_fill_env_data (ipc_dhcpv4_data_t *dhcpv4_data, udhcpc_script_
     return 0;
 }
 
+#ifdef FEATURE_RDKB_WAN_MANAGER
 static int send_dhcp_data_to_wanmanager (ipc_dhcpv4_data_t *dhcpv4_data)
 {
     if ( NULL == dhcpv4_data)
@@ -1359,6 +1389,63 @@ static int send_dhcp_data_to_wanmanager (ipc_dhcpv4_data_t *dhcpv4_data)
     return 0;
 }
 #endif
+static int send_dhcp_data_to_dhcpmanager (ipc_dhcpv4_data_t *dhcpv4_data)
+{
+    if ( NULL == dhcpv4_data)
+    {
+        printf ("[%s-%d] Invalid argument \n", __FUNCTION__,__LINE__);
+        return -1;
+    }
+
+    /**
+     * Send data to dhcpmanager.
+     */
+    ipc_msg_payload_t msg;
+    memset(&msg, 0, sizeof(ipc_msg_payload_t));
+
+    msg.msg_type = DHCPC_STATE_CHANGED;
+    memcpy(&msg.data.dhcpv4, dhcpv4_data, sizeof(ipc_dhcpv4_data_t));
+
+    int sock   = -1;
+    int conn   = -1;
+    int bytes  = -1;
+    int sz_msg = sizeof(ipc_msg_payload_t);
+
+    sock = nn_socket(AF_SP, NN_PUSH);
+    if (sock < 0)
+    {
+        OnboardLog("[%s-%d] Failed to create the socket , error = [%d][%s]\n", __FUNCTION__, __LINE__, errno, strerror(errno));
+        return -1;
+    }
+
+    OnboardLog("[%s-%d] Created socket endpoint \n", __FUNCTION__, __LINE__);
+
+    conn = nn_connect(sock, DHCP_MANAGER_ADDR);
+    if (conn < 0)
+    {
+        OnboardLog("[%s-%d] Failed to connect to the dhcpmanager [%s], error= [%d][%s] \n", __FUNCTION__, __LINE__, DHCP_MANAGER_ADDR,errno, strerror(errno));
+        nn_close(sock);
+        return -1;
+    }
+
+    OnboardLog("[%s-%d] Connected to server socket [%s] \n", __FUNCTION__, __LINE__,DHCP_MANAGER_ADDR);
+
+    for (int i = 0; i < MAX_SEND_THRESHOLD; i++)
+    {
+        bytes = nn_send(sock, (char *) &msg, sz_msg, 0);
+        if (bytes < 0)
+        {
+            sleep(1);
+            OnboardLog("[%s-%d] Failed to send data to the dhcpmanager error=[%d][%s] \n", __FUNCTION__, __LINE__,errno, strerror(errno));
+        }
+        else
+            break;
+    }
+
+    OnboardLog("Successfully send %d bytes to dhcpmanager \n", bytes);
+    nn_close(sock);
+    return 0;
+}
 
 int main(int argc, char *argv[])
 {

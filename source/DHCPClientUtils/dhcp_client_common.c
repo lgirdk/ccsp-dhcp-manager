@@ -551,11 +551,6 @@ void free_opt_list_data (dhcp_opt_list * opt_list)
     {
         tmp_node = opt_list;
         opt_list = opt_list->next;
-        if (tmp_node->dhcp_opt_val)
-        {
-            // DHCPv4 send opt will have opt_val
-            free(tmp_node->dhcp_opt_val);
-        }
         free(tmp_node);
     }
 }

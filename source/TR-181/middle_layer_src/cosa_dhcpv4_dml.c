@@ -84,6 +84,7 @@
 #include "cosa_webconfig_api.h"
 
 #include <syscfg/syscfg.h>
+#include "dhcp_client_utils.h"
 
 extern void* g_pDslhDmlAgent;
 extern ANSC_HANDLE g_Dhcpv4Object;
@@ -946,7 +947,6 @@ Client_GetParamStringValue
     CHAR                            tmpBuff[128]      = {0};
     ULONG                           i                 = 0;
     ULONG                           len               = 0;
-    PUCHAR                          pString           = NULL;
     errno_t   rc  = -1;
 
     /* check the parameter name and return the corresponding value */
@@ -971,7 +971,7 @@ Client_GetParamStringValue
     if( AnscEqualString(ParamName, "Interface", TRUE))
     {
         /* collect value */
-        pString = CosaUtilGetFullPathNameByKeyword
+/*        pString = CosaUtilGetFullPathNameByKeyword
             (
                 (PUCHAR)"Device.IP.Interface.",
                 (PUCHAR)"Name",
@@ -986,7 +986,8 @@ Client_GetParamStringValue
         else
         {
             return 0;
-        }
+        }*/
+return  update_pValue(pValue,pUlSize, pDhcpc->Cfg.Interface);
 
     }
 
@@ -1099,6 +1100,10 @@ Client_SetParamBoolValue
     {
         /* save update to backup */
         pDhcpc->Cfg.bEnabled = bValue;
+        if(bValue)
+            CosaDmlStartDhcpv4Client(hInsContext);
+        else
+            CosaDmlStopDhcpv4Client(hInsContext);
 
         return  TRUE;
     }
@@ -1108,11 +1113,16 @@ Client_SetParamBoolValue
         /* save update to backup */
         if ( bValue )
         {
-            returnStatus = CosaDmlDhcpcRenew(NULL, pDhcpc->Cfg.InstanceNumber);
-            if ( returnStatus != ANSC_STATUS_SUCCESS )
+            if (pDhcpc->Cfg.bEnabled)
             {
-                return  FALSE;
+                returnStatus = CosaDmlDhcpcRenew(hInsContext, pDhcpc->Cfg.InstanceNumber);
+                if ( returnStatus != ANSC_STATUS_SUCCESS )
+                {
+                    return  FALSE;
+                }
             }
+            else
+                return FALSE;
         }
 
         return  TRUE;
@@ -1277,6 +1287,18 @@ Client_SetParamStringValue
     {
         /* save update to backup */
         rc = STRCPY_S_NOCLOBBER(pDhcpc->Cfg.Interface, sizeof(pDhcpc->Cfg.Interface), pString);
+        if(rc != EOK)
+        {
+            ERR_CHK(rc);
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    if( AnscEqualString(ParamName, "Alias", TRUE))
+    {
+        /* save update to backup */
+        rc = STRCPY_S_NOCLOBBER(pDhcpc->Cfg.Alias, sizeof(pDhcpc->Cfg.Alias), pString);
         if(rc != EOK)
         {
             ERR_CHK(rc);
@@ -3862,7 +3884,7 @@ Server_SetParamStringValue
             }
             if (NULL != pStaticClients)
             {
-                CcspTraceWarning(("pStaticClients->entries_count is %u\n", pStaticClients->entries_count));
+                CcspTraceWarning(("pStaticClients->entries_count is %lu\n", pStaticClients->entries_count));
                 CcspTraceWarning(("pStaticClients->subdoc_name is %s\n", pStaticClients->subdoc_name));
                 CcspTraceWarning(("pStaticClients->version is %lu\n", (unsigned long)pStaticClients->version));
                 CcspTraceWarning(("pStaticClients->transaction_id is %d\n", pStaticClients->transaction_id));
@@ -3952,7 +3974,7 @@ Server_SetParamStringValue
             if (NULL != pLanInfo)
             {
                 pLanInfo->entries_count = 1;// Assigned 1 by default.
-                CcspTraceWarning(("pLanInfo->entries_count is %u\n", pLanInfo->entries_count));
+                CcspTraceWarning(("pLanInfo->entries_count is %lu\n", pLanInfo->entries_count));
                 CcspTraceWarning(("pLanInfo->subdoc_name is %s\n", pLanInfo->subdoc_name));
                 CcspTraceWarning(("pLanInfo->version is %lu\n", (unsigned long)pLanInfo->version));
                 CcspTraceWarning(("pLanInfo->transaction_id is %d\n", pLanInfo->transaction_id));
@@ -6017,7 +6039,7 @@ Pool_GetParamStringValue
             CosaDmlDhcpsGetPoolCfg(NULL,&tmpCfg);
             snprintf(pValue,sizeof(tmpCfg.DomainName),"%s", tmpCfg.DomainName);
         }else {
-            CcspTraceWarning(("%s: pPool->Cfg.DomainName: %s  0x%1x 0x%1x 0x%1x 0x%1x, sizeof: %d\n",
+            CcspTraceWarning(("%s: pPool->Cfg.DomainName: %s  0x%1x 0x%1x 0x%1x 0x%1x, sizeof: %ld\n",
                               __FUNCTION__, pPool->Cfg.DomainName, (signed) (pPool->Cfg.DomainName[0]),
                               (signed) (pPool->Cfg.DomainName[1]), (signed) (pPool->Cfg.DomainName[2]),
                               (signed) (pPool->Cfg.DomainName[3]), sizeof(pPool->Cfg.DomainName)));
@@ -7888,7 +7910,7 @@ StaticAddress_SetParamStringValue
         }
         else
         {
-            CcspTraceWarning(("'%s' value should be less than (%d) charecters\n", ParamName, ( sizeof(pDhcpStaticAddress->DeviceName) - 1 )));
+            CcspTraceWarning(("'%s' value should be less than (%ld) charecters\n", ParamName, ( sizeof(pDhcpStaticAddress->DeviceName) - 1 )));
         }
     }
 
@@ -7907,7 +7929,7 @@ StaticAddress_SetParamStringValue
         }
         else
         {
-            CcspTraceWarning(("'%s' value should be less than (%d) charecters\n", ParamName, ( sizeof(pDhcpStaticAddress->Comment) - 1 )));
+            CcspTraceWarning(("'%s' value should be less than (%ld) charecters\n", ParamName, ( sizeof(pDhcpStaticAddress->Comment) - 1 )));
         }
     }
 

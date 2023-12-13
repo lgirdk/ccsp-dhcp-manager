@@ -62,6 +62,35 @@
 #define RETURN_PID_TIMEOUT_IN_MSEC        (5 * MSECS_IN_SEC)    // 5 sec
 #define RETURN_PID_INTERVAL_IN_MSEC       (0.5 * MSECS_IN_SEC)  // 0.5 sec - half a second
 
+//DHCPv6 Options
+#define DHCPV6_OPT_82  82  // OPTION_SOL_MAX_RT: Solicite Maximum Retry Time
+#define DHCPV6_OPT_23  23  // OPTION_SOL_MAX_RT: Solicite Maximum Retry Time
+#define DHCPV6_OPT_95  95  // OPTION_SOL_MAX_RT: Solicite Maximum Retry Time
+#define DHCPV6_OPT_24  24  // OPTION_DOMAIN_LIST
+#define DHCPV6_OPT_83  83  // OPTION_INF_MAX_RT
+#define DHCPV6_OPT_17  17  // OPTION_VENDOR_OPTS
+#define DHCPV6_OPT_31  31  // OPTION_SNTP_SERVERS
+#define DHCPV6_OPT_15  15  // User Class Option
+#define DHCPV6_OPT_16  16  // Vendor Class Option
+#define DHCPV6_OPT_20  20  // Reconfigure Accept Option
+
+
+//DHCPv4 Options
+#define DHCPV4_OPT_42  42  // NTP Server Addresses
+#define DHCPV4_OPT_43  43  // Vendor Specific Information
+#define DHCPV4_OPT_58  58  // DHCP Renewal (T1) Time
+#define DHCPV4_OPT_59  59  // DHCP Rebinding (T2) Time
+#define DHCPV4_OPT_60  60  // Class Identifier
+#define DHCPV4_OPT_61  61  // Client Identifier
+#define DHCPV4_OPT_100 100 // IEEE 1003.1 TZ String
+#define DHCPV4_OPT_122 122 // CableLabs Client Configuration
+#define DHCPV4_OPT_125 125 // Vendor-Identifying Vendor-Specific Information
+#define DHCPV4_OPT_242 242 // Private Use
+#define DHCPV4_OPT_243 243 // Private Use
+#define DHCPV4_OPT_END 255 // DHCP Option End - used to check if option is valid
+#define DHCPV4_OPT_120 120 //DHCP Req option for sipsrv
+#define DHCPV4_OPT_121 121 //DHCP Req option for classless static routes
+
 #define DBG_PRINT(fmt ...)     {\
     FILE     *fp        = NULL;\
     fp = fopen ( CONSOLE_LOG_FILE, "a+");\
@@ -84,7 +113,8 @@ typedef struct dhcp_opt {
     IfaceType ifType;
 } dhcp_params;
 
-pid_t start_dhcpv4_client (dhcp_params * params);
+pid_t start_dhcpv4_client (dhcp_params * params,dhcp_opt_list * req_opt_list,dhcp_opt_list * send_opt_list);
+int stop_dhcpv4_client (dhcp_params * params);
 int stop_udhcpc (dhcp_params * params);
 pid_t start_dhcpv6_client (dhcp_params * params);
 int stop_dhcpv6_client (dhcp_params * params);
@@ -94,4 +124,4 @@ pid_t get_process_pid (char * name, char * args);
 int collect_waiting_process(int pid, int timeout);
 void free_opt_list_data (dhcp_opt_list * opt_list);
 int signal_process (pid_t pid, int signal);
-
+int add_dhcpv4_opt_to_list (dhcp_opt_list ** opt_list, int opt, char * opt_val);

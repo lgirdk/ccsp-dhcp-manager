@@ -181,7 +181,7 @@ static int udhcpc_get_other_args (char * buff, dhcp_params * params)
     }
 
    // Add -s <servicefile>
-    char servicefile[BUFLEN_32] = {0};
+    char servicefile[BUFLEN_64] = {0};
 #ifdef UDHCPC_SCRIPT_FILE
     snprintf (servicefile, sizeof(servicefile), "-s %s ", UDHCPC_SERVICE_SCRIPT_FILE);
 #else
@@ -227,6 +227,7 @@ pid_t start_udhcpc (dhcp_params * params, dhcp_opt_list * req_opt_list, dhcp_opt
 
     char buff [BUFLEN_512] = {0};
 
+#if 0
     DBG_PRINT("%s %d: Constructing REQUEST option args to udhcpc.\n", __FUNCTION__, __LINE__);
     if ((req_opt_list != NULL) && (udhcpc_get_req_options(buff, req_opt_list)) != SUCCESS)
     {
@@ -240,7 +241,7 @@ pid_t start_udhcpc (dhcp_params * params, dhcp_opt_list * req_opt_list, dhcp_opt
         DBG_PRINT("%s %d: Unable to get DHCPv4 SEND OPT.\n", __FUNCTION__, __LINE__);
         return FAILURE;
     }
-
+#endif
     DBG_PRINT("%s %d: Constructing other option args to udhcpc.\n", __FUNCTION__, __LINE__);
     if (udhcpc_get_other_args(buff, params) != SUCCESS)
     {
@@ -287,7 +288,14 @@ int stop_udhcpc (dhcp_params * params)
         return FAILURE;
     }
 
-    return collect_waiting_process(pid, UDHCPC_TERMINATE_TIMEOUT);
+    int ret = collect_waiting_process(pid, UDHCPC_TERMINATE_TIMEOUT);
+
+    if (signal_process(pid, SIGTERM) != RETURN_OK)
+    {
+         DBG_PRINT("%s %d: unable to send signal to pid %d\n", __FUNCTION__, __LINE__, pid);
+         return FAILURE;
+    }
+    return ret;
 
 }
 

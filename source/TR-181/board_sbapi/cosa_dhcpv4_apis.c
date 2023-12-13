@@ -81,6 +81,10 @@
 #include "utapi/utapi_util.h"
 #include "safec_lib_common.h"
 #include "cosa_apis_util.h"
+#include "dhcp_client_utils.h"
+#include "cosa_dhcpv4_internal.h"
+#include "ipc_msg.h"
+#include "cosa_dhcpv4_dml.h"
 
 #if ( defined _COSA_SIM_ )
 
@@ -146,6 +150,8 @@ ULONG          g_Dhcp4ClientNum = 0;
 ULONG          g_Dhcp4ClientSentOptNum[COSA_DML_DHCP_MAX_ENTRIES] = {0,0,0,0};
 ULONG          g_Dhcp4ClientReqOptNum[COSA_DML_DHCP_MAX_ENTRIES]  = {0,0,0,0};
 #endif
+
+static int   ipcListenFd;
 
 /*for server.pool.client*/
 PCOSA_DML_DHCPSV4_CLIENT g_dhcpv4_server_client = NULL;
@@ -1466,6 +1472,377 @@ CosaDmlDhcpInit
 }
 
 #ifndef FEATURE_RDKB_WAN_MANAGER
+
+static ANSC_STATUS IpcServerInit()
+{
+    int i;
+
+    if ((ipcListenFd = nn_socket(AF_SP, NN_PULL)) < 0)
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+    if ((i = nn_bind(ipcListenFd, DHCP_MANAGER_ADDR)) < 0)
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    return ANSC_STATUS_SUCCESS;
+}
+ANSC_STATUS DhcpMgr_fillServerResponse(ipc_dhcpv4_data_t* pNewIpv4Msg)
+{
+    PCOSA_DML_DHCPC_FULL            pDhcpc        = NULL;
+    PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink  = NULL;
+    PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
+    PCOSA_DML_DHCPC_REQ_OPT         pDhcpReqOpt   = NULL;
+    ULONG                           noOfReqOpt    = -1;
+    ULONG ulIndex;
+    ULONG instanceNum;
+    ULONG clientCount = CosaDmlDhcpcGetNumberOfEntries(NULL);
+
+    for ( ulIndex = 0; ulIndex < clientCount; ulIndex++ )
+    {
+        pSListEntry = (PSINGLE_LINK_ENTRY)Client_GetEntry(NULL,ulIndex,&instanceNum);
+        if ( pSListEntry )
+        {
+            pDhcpCxtLink          = ACCESS_COSA_CONTEXT_DHCPC_LINK_OBJECT(pSListEntry);
+            pDhcpc            = (PCOSA_DML_DHCPC_FULL)pDhcpCxtLink->hContext;
+        }
+        if (!pDhcpc)
+        {
+            CcspTraceError(("%s : pDhcpc is NULL\n",__FUNCTION__));
+            return ANSC_STATUS_FAILURE;
+        }
+        if (strcmp (pNewIpv4Msg->dhcpcInterface,pDhcpc->Cfg.Interface) == 0)
+        {
+            if (pNewIpv4Msg->addressAssigned == 1)
+            {
+                   /* Updatet the status */
+                pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Enabled;
+                   /* Update the DHCPCStatus */
+                pDhcpc->Info.DHCPStatus = COSA_DML_DHCPC_STATUS_Bound;
+                   /* Update the IP address assigned */
+                AnscWriteUlong(&pDhcpc->Info.IPAddress.Value, _ansc_inet_addr(pNewIpv4Msg->ip));
+                   /* Update the Subnet Mask */
+                AnscWriteUlong(&pDhcpc->Info.SubnetMask.Value, _ansc_inet_addr(pNewIpv4Msg->mask));
+                   /* Update the leaseTime */
+                pDhcpc->Info.LeaseTimeRemaining = pNewIpv4Msg->leaseTime;
+                pDhcpc->Info.NumDnsServers = 0;
+                pDhcpc->Info.NumIPRouters = 0;
+                   /* Update the DNS Servers */
+                char *tok = strtok (pNewIpv4Msg->dnsServer, " ");
+                while (tok != NULL)
+                {
+                    AnscWriteUlong(&pDhcpc->Info.DNSServers[pDhcpc->Info.NumDnsServers].Value, _ansc_inet_addr(tok));
+                    pDhcpc->Info.NumDnsServers++;
+                    tok = strtok (NULL, " ");
+                }
+                   /* Update the IPRouters */
+                tok = strtok (pNewIpv4Msg->gateway, " ");
+                while (tok != NULL)
+                {
+                    AnscWriteUlong(&pDhcpc->Info.IPRouters[pDhcpc->Info.NumIPRouters].Value, _ansc_inet_addr(tok));
+                    pDhcpc->Info.NumIPRouters++;
+                    tok = strtok (NULL, " ");
+                }
+                     //Update the DHCP Server
+                AnscWriteUlong(&pDhcpc->Info.DHCPServer.Value, _ansc_inet_addr(pNewIpv4Msg->dhcpServerId));
+            }
+              noOfReqOpt = CosaDmlDhcpcGetNumberOfReqOption(pDhcpCxtLink->hContext, pDhcpc->Cfg.InstanceNumber);
+              for (unsigned int reqIdx = 0; reqIdx < noOfReqOpt; reqIdx++)
+              {
+                  pDhcpReqOpt = CosaDmlDhcpcGetReqOption_Entry(pDhcpCxtLink, reqIdx);
+                  if (!pDhcpReqOpt)
+                  {
+                      CcspTraceError(("%s : pDhcpReqOpt is NULL",__FUNCTION__));
+                      return ANSC_STATUS_FAILURE;
+                  }
+                  if (pDhcpReqOpt->Tag == DHCPV4_OPT_120)
+                  {
+                      STRCPY_S_NOCLOBBER((char *)pDhcpReqOpt->Value, sizeof(pDhcpReqOpt->Value), pNewIpv4Msg->sipsrv);
+                  }
+                  if (pDhcpReqOpt->Tag == DHCPV4_OPT_121)
+                  {
+                      STRCPY_S_NOCLOBBER((char *)pDhcpReqOpt->Value, sizeof(pDhcpReqOpt->Value), pNewIpv4Msg->staticroutes);
+                  }
+              }
+        }
+    }
+    return ANSC_STATUS_SUCCESS;
+}
+static void* IpcServerThread( void *arg )
+{
+
+    if (arg == NULL)
+    {
+        DBG_PRINT("%s %d  arg is NULL...\n", __FUNCTION__, __LINE__);
+    }
+
+  //detach thread from caller stack
+    pthread_detach(pthread_self());
+
+    // local variables
+    BOOL bRunning = TRUE;
+
+    int bytes = 0;
+    int msg_size = sizeof(ipc_msg_payload_t);
+    ipc_msg_payload_t ipc_msg;
+    memset (&ipc_msg, 0, sizeof(ipc_msg_payload_t));
+
+    while (bRunning)
+    {
+        bytes = nn_recv(ipcListenFd, (ipc_msg_payload_t *)&ipc_msg, msg_size, 0);
+        if ((bytes == msg_size))
+        {
+            switch(ipc_msg.msg_type)
+            {
+                case DHCPC_STATE_CHANGED:
+                    {
+                        ipc_dhcpv4_data_t* pNewIpv4Msg = &(ipc_msg.data.dhcpv4);
+                        DhcpMgr_fillServerResponse(pNewIpv4Msg);
+                    }
+                    break;
+                default:
+                        CcspTraceError(("[%s-%d] Invalid  Message sent to DhcpManager\n", __FUNCTION__, __LINE__));
+            }
+        }
+        else
+        {
+            CcspTraceError(("[%s-%d] message size unexpected\n", __FUNCTION__, __LINE__));
+        }
+    }
+
+    nn_freemsg ((void *)&ipc_msg);
+    nn_shutdown (ipcListenFd, 0);
+    pthread_exit(NULL);
+}
+
+ANSC_STATUS DhcpMgr_StartIpcServer()
+{
+    pthread_t ipcThreadId;
+    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
+    int ret = -1;
+
+    if(IpcServerInit() != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceInfo(("Failed to initialise IPC messaging"));
+        return -1;
+    }
+
+    //create thread
+    ret = pthread_create( &ipcThreadId, NULL, &IpcServerThread, NULL );
+
+    if( 0 != ret )
+    {
+        CcspTraceInfo(("%s %d - Failed to start IPC Thread Error:%d\n", __FUNCTION__, __LINE__, ret));
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - IPC Thread Started Successfully\n", __FUNCTION__, __LINE__));
+        retStatus = ANSC_STATUS_SUCCESS;
+    }
+    return retStatus ;
+}
+
+/*
+    Description:
+        The API retrieves the Request option entry from Client table by index.
+    Arguments:
+        hInsContext      The client entry.
+        InsNumber        Instance number of request option table entry.
+    Retrun:
+        Address of Request option table entry
+*/
+PCOSA_DML_DHCPC_REQ_OPT CosaDmlDhcpcGetReqOption_Entry(ANSC_HANDLE hInsContext, ULONG InsNumber)
+{
+    PCOSA_CONTEXT_DHCPC_LINK_OBJECT pCxtDhcpcLink = (PCOSA_CONTEXT_DHCPC_LINK_OBJECT)hInsContext;
+    PCOSA_CONTEXT_LINK_OBJECT       pCxtLink      = NULL;
+    PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
+
+    if (!pCxtDhcpcLink)
+    {
+        CcspTraceError(("%s : pCxtDhcpcLink is NULL",__FUNCTION__));
+        return NULL;
+    }
+    pSListEntry = AnscSListGetEntryByIndex(&pCxtDhcpcLink->ReqOptionList, InsNumber);
+    if ( pSListEntry )
+    {
+        pCxtLink = ACCESS_COSA_CONTEXT_LINK_OBJECT(pSListEntry);
+        if (!pCxtLink)
+        {
+            CcspTraceError(("%s:pCxtLink is NULL",__FUNCTION__));
+            return NULL;
+        }
+        return (PCOSA_DML_DHCPC_REQ_OPT)pCxtLink->hContext;
+    }
+    else
+    {
+       return NULL;
+    }
+}
+/*
+    Description:
+        The API retrieves the Sent option entry from Client table by index.
+    Arguments:
+        hInsContext      The client entry.
+        InsNumber        Instance number of send option table entry.
+    Retrun:
+        Address of Sent option table entry
+*/
+PCOSA_DML_DHCP_OPT CosaDmlDhcpcGetSentOption_Entry(ANSC_HANDLE hInsContext, ULONG InsNumber)
+{
+    PCOSA_CONTEXT_DHCPC_LINK_OBJECT pCxtDhcpcLink = (PCOSA_CONTEXT_DHCPC_LINK_OBJECT)hInsContext;
+    PCOSA_CONTEXT_LINK_OBJECT       pCxtLink      = NULL;
+    PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
+
+    if (!pCxtDhcpcLink)
+    {
+        CcspTraceError(("%s:pCxtDhcpcLink is NULL",__FUNCTION__));
+        return NULL;
+    }
+    pSListEntry = AnscSListGetEntryByIndex(&pCxtDhcpcLink->SendOptionList, InsNumber);
+    if ( pSListEntry )
+    {
+        pCxtLink = ACCESS_COSA_CONTEXT_LINK_OBJECT(pSListEntry);
+        if (!pCxtLink)
+        {
+            CcspTraceError(("%s:pCxtLink is NULL",__FUNCTION__));
+            return NULL;
+        }
+        return (PCOSA_DML_DHCP_OPT)pCxtLink->hContext;
+    }
+    else
+    {
+       return NULL;
+    }
+}
+/*
+    Description:
+        The API retrieves the Request/Send option entry from Client table by index
+        and start the udhcpc instance.
+    Arguments:
+        hInsContext      The client entry.
+    Retrun:
+        ANSC_STATUS as ANSC_STATUS_SUCCESS on success or ANSC_STATUS_FAILURE on failure.
+*/
+ANSC_STATUS CosaDmlStartDhcpv4Client(ANSC_HANDLE hInsContext)
+{
+    PCOSA_CONTEXT_DHCPC_LINK_OBJECT pCxtLink      = (PCOSA_CONTEXT_DHCPC_LINK_OBJECT)hInsContext;
+    PCOSA_DML_DHCPC_FULL            pDhcpc        = NULL;
+    PCOSA_DML_DHCPC_REQ_OPT         pDhcpReqOpt   = NULL;
+    PCOSA_DML_DHCP_OPT              pDhcpSentOpt  = NULL;
+    dhcp_opt_list*                  req_opt_list  = NULL;
+    dhcp_opt_list*                  send_opt_list = NULL;
+    dhcp_params                     dhcpParams    = {0};
+    ULONG                           noOfReqOpt    = -1;
+    ULONG                           noOfSentOpt   = -1;
+    pid_t                           clientPid     = -1;
+
+    if (!pCxtLink)
+    {
+        CcspTraceError(("%s : pCxtLink is NULL",__FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    pDhcpc = (PCOSA_DML_DHCPC_FULL)pCxtLink->hContext;
+    if (!pDhcpc)
+    {
+        CcspTraceError(("%s : pDhcpc is NULL",__FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    dhcpParams.ifname = pDhcpc->Cfg.Interface;
+    dhcpParams.ifType = WAN_LOCAL_IFACE;
+    noOfReqOpt = CosaDmlDhcpcGetNumberOfReqOption(hInsContext, pDhcpc->Cfg.InstanceNumber);
+
+    for (ULONG reqIdx = 0; reqIdx < noOfReqOpt; reqIdx++)
+    {
+        pDhcpReqOpt = CosaDmlDhcpcGetReqOption_Entry(hInsContext, reqIdx);
+        if (!pDhcpReqOpt)
+        {
+            CcspTraceError(("%s : pDhcpReqOpt is NULL",__FUNCTION__));
+        }
+        else if (pDhcpReqOpt->bEnabled)
+        {
+            add_dhcpv4_opt_to_list(&req_opt_list, (int)pDhcpReqOpt->Tag, NULL);
+        }
+    }
+    noOfSentOpt = CosaDmlDhcpcGetNumberOfSentOption(hInsContext, pDhcpc->Cfg.InstanceNumber);
+
+    for (ULONG sentIdx = 0; sentIdx < noOfSentOpt; sentIdx++)
+    {
+        pDhcpSentOpt = CosaDmlDhcpcGetSentOption_Entry(hInsContext, sentIdx);
+
+        if (!pDhcpSentOpt)
+        {
+            CcspTraceError(("%s : pDhcpSentOpt is NULL",__FUNCTION__));
+        }
+        else if (pDhcpSentOpt->bEnabled)
+        {
+            add_dhcpv4_opt_to_list(&send_opt_list, (int)pDhcpSentOpt->Tag, (char *)pDhcpSentOpt->Value);
+        }
+    }
+
+    clientPid = start_dhcpv4_client(&dhcpParams, req_opt_list, send_opt_list);
+    free_opt_list_data (req_opt_list);
+    free_opt_list_data (send_opt_list);
+    if (-1 == clientPid)
+    {
+        CcspTraceError(("start_dhcpv4_client is failed to trigger udhcpc instance"));
+        return ANSC_STATUS_FAILURE;
+    }
+    return ANSC_STATUS_SUCCESS;
+}
+/*
+    Description:
+        The API used stop the running udhcpc instance using interface name.
+    Arguments:
+        hInsContext      The client entry.
+    Return:
+        ANSC_STATUS as ANSC_STATUS_SUCCESS on success or ANSC_STATUS_FAILURE on failure.
+*/
+ANSC_STATUS CosaDmlStopDhcpv4Client(ANSC_HANDLE hInsContext)
+{
+    PCOSA_CONTEXT_DHCPC_LINK_OBJECT pCxtLink      = (PCOSA_CONTEXT_DHCPC_LINK_OBJECT)hInsContext;
+    PCOSA_DML_DHCPC_FULL            pDhcpc        = NULL;
+    dhcp_params                     dhcpParams    = {0};
+    PCOSA_DML_DHCPC_REQ_OPT         pDhcpReqOpt   = NULL;
+
+    if (!pCxtLink)
+    {
+        CcspTraceError(("%s : pCxtLink is NULL",__FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+    pDhcpc = (PCOSA_DML_DHCPC_FULL)pCxtLink->hContext;
+    if (!pDhcpc)
+    {
+        CcspTraceError(("%s : pDhcpc is NULL",__FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+    dhcpParams.ifname = pDhcpc->Cfg.Interface;
+    dhcpParams.ifType = WAN_LOCAL_IFACE;
+    stop_dhcpv4_client(&dhcpParams);
+
+    AnscZeroMemory(&(pDhcpc->Info), sizeof(COSA_DML_DHCPC_INFO));
+    pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
+    pDhcpc->Info.DHCPStatus = COSA_DML_DHCPC_STATUS_Init;
+
+    int noOfReqOpt = CosaDmlDhcpcGetNumberOfReqOption(hInsContext, pDhcpc->Cfg.InstanceNumber);
+    for (int reqIdx = 0; reqIdx < noOfReqOpt; reqIdx++)
+    {
+        pDhcpReqOpt = CosaDmlDhcpcGetReqOption_Entry(hInsContext, reqIdx);
+        if (!pDhcpReqOpt)
+        {
+            CcspTraceError(("%s : pDhcpReqOpt is NULL",__FUNCTION__));
+        }
+        else if (pDhcpReqOpt->bEnabled)
+        {
+            AnscZeroMemory(&(pDhcpReqOpt->Value), sizeof(pDhcpReqOpt->Value));
+        }
+    }
+
+    return ANSC_STATUS_SUCCESS;
+}
+
 /*
     Description:
         The API retrieves the number of DHCP clients in the system.
@@ -1476,8 +1853,21 @@ CosaDmlDhcpcGetNumberOfEntries
         ANSC_HANDLE                 hContext
     )
 {
+    int retPsmGet = CCSP_SUCCESS;
+    char param_name[512];
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    char* param_value = NULL;
+    retPsmGet = PSM_Get_Record_Value2(bus_handle,g_Subsystem, PSM_DHCPMANAGER_CLIENTCOUNT, NULL, &param_value);
+    if (retPsmGet != CCSP_SUCCESS) {
+        CcspTraceError(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmGet, param_name, param_value));
+        return 0;
+    }
+    else
+    {
+         return atoi(param_value);
+    }
     UNREFERENCED_PARAMETER(hContext);
-    return 1;
+    return 0;
 }
 
 /*
@@ -1495,12 +1885,10 @@ CosaDmlDhcpcGetEntry
         PCOSA_DML_DHCPC_FULL        pEntry
     )
 {
-        UNREFERENCED_PARAMETER(hContext);
-        if(ulIndex >0)
-                     return(ANSC_STATUS_FAILURE);
-        pEntry->Cfg.InstanceNumber = 1;
+        pEntry->Cfg.InstanceNumber = ulIndex;
         CosaDmlDhcpcGetCfg(hContext, &pEntry->Cfg);
         CosaDmlDhcpcGetInfo(hContext, ulIndex,&pEntry->Info);
+        UNREFERENCED_PARAMETER(hContext);
         return ANSC_STATUS_SUCCESS;
 }
 
@@ -1584,7 +1972,7 @@ CosaDmlDhcpcSetCfg
     UNREFERENCED_PARAMETER(pCfg);
     /*don't allow to change dhcp configuration*/
 
-    return ANSC_STATUS_FAILURE;
+    return ANSC_STATUS_SUCCESS;
 }
 
 ANSC_STATUS
@@ -1597,14 +1985,18 @@ CosaDmlDhcpcGetCfg
     UNREFERENCED_PARAMETER(hContext);
         char ifname[32];
         errno_t rc = -1;
+    char *param_value= NULL;
+    int instancenum = pCfg->InstanceNumber;
+    char param_name[256]= {0};
+    int retPsmGet = CCSP_SUCCESS;
+
 
     if ( !pCfg )
     {
         return ANSC_STATUS_FAILURE;
     }
    
-        pCfg->bEnabled = TRUE;
-        pCfg->InstanceNumber = 1;
+        pCfg->bEnabled = FALSE;
         if(dhcpv4c_get_ert_ifname(ifname))
                pCfg->Interface[0] = 0;
         else
@@ -1613,8 +2005,11 @@ CosaDmlDhcpcGetCfg
                 ERR_CHK(rc);
         }
         
-        rc=sprintf_s(pCfg->Alias, sizeof(pCfg->Alias),"cpe-%s", pCfg->Interface);
-        ERR_CHK(rc);
+        _PSM_READ_PARAM(PSM_DHCPMANAGER_CLIENTALIAS);
+        if (retPsmGet == CCSP_SUCCESS)
+        {
+             STRCPY_S_NOCLOBBER(pCfg->Alias, sizeof(pCfg->Alias), param_value);
+        }
         
         pCfg->PassthroughEnable = TRUE;
         pCfg->PassthroughDHCPPool[0] = 0;
@@ -1631,10 +2026,20 @@ CosaDmlDhcpcGetInfo
     )
 {
     UNREFERENCED_PARAMETER(hContext);
+    if (ulInstanceNumber == 0)
+    {
+        DBG_PRINT("%s %d: ulInstanceNumber is NULL...\n", __FUNCTION__, __LINE__);
+    }
+    if (pInfo == NULL)
+    {
+        DBG_PRINT("%s %d: pInfo is NULL...\n", __FUNCTION__, __LINE__);
+    }
+
+#if 0
         ULONG i;
         dhcpv4c_ip_list_t ad;
 
-    if ( (!pInfo) || (ulInstanceNumber != 1) ){
+    if ( (!pInfo)){
         return ANSC_STATUS_FAILURE;
     }
 
@@ -1656,7 +2061,7 @@ CosaDmlDhcpcGetInfo
            pInfo->DNSServers[i].Value = ad.addrs[i];
         dhcpv4c_get_ert_remain_lease_time((unsigned int*)&pInfo->LeaseTimeRemaining);
         dhcpv4c_get_ert_dhcp_svr((unsigned int*)&pInfo->DHCPServer);
-
+#endif
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -1674,8 +2079,15 @@ CosaDmlDhcpcRenew
     )
 {
         UNREFERENCED_PARAMETER(hContext);
-        if(ulInstanceNumber != 1)
-              return(ANSC_STATUS_FAILURE);
+//        if(ulInstanceNumber != 1)
+//              return(ANSC_STATUS_FAILURE);
+       if (ulInstanceNumber == 0)
+       {
+           DBG_PRINT("%s %d: ulInstanceNumber is NULL...\n", __FUNCTION__, __LINE__);
+       }
+
+        CosaDmlStopDhcpv4Client(hContext);
+        CosaDmlStartDhcpv4Client(hContext);
 #ifndef _HUB4_PRODUCT_REQ_
         v_secure_system("sysevent set dhcp_client-renew");
 #endif
@@ -1704,9 +2116,17 @@ CosaDmlDhcpcGetNumberOfSentOption
         ULONG                       ulClientInstanceNumber
     )
 {
+    int retPsmGet = CCSP_SUCCESS;
+    char *param_value= NULL;
+    char param_name[256]= {0};
+    int instancenum = ulClientInstanceNumber;
+    _PSM_READ_PARAM(PSM_DHCPMANAGER_SENDOPTIONCOUNT);
+    if (retPsmGet == CCSP_SUCCESS) {
+       return atoi(param_value);
+    }
+    else
+      return 0;
     UNREFERENCED_PARAMETER(hContext);
-    UNREFERENCED_PARAMETER(ulClientInstanceNumber);
-    return 0;
 }
 
 ANSC_STATUS
@@ -1718,11 +2138,34 @@ CosaDmlDhcpcGetSentOption
         PCOSA_DML_DHCP_OPT          pEntry
     )
 {
+   int retPsmGet = CCSP_SUCCESS;
+    char *param_value= NULL;
+    char param_name[256]= {0};
+    int tblInstancenum = ulClientInstanceNumber;
+    int instancenum = ulIndex;
+    pEntry->InstanceNumber = ulIndex;
+    pEntry->bEnabled = TRUE;
+
+    _PSM_READ_TBL_PARAM(PSM_DHCPMANAGER_SENDOPTIONALIAS);
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        STRCPY_S_NOCLOBBER(pEntry->Alias, sizeof(pEntry->Alias), param_value);
+    }
+
+    _PSM_READ_TBL_PARAM(PSM_DHCPMANAGER_SENDOPTIONTAG);
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+       pEntry->Tag = atoi(param_value);
+    }
+
+    _PSM_READ_TBL_PARAM(PSM_DHCPMANAGER_SENDOPTIONVALUE);
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        STRCPY_S_NOCLOBBER((char *)pEntry->Value, sizeof(pEntry->Value), param_value);
+    }
+
     UNREFERENCED_PARAMETER(hContext);
-    UNREFERENCED_PARAMETER(ulClientInstanceNumber);
-    UNREFERENCED_PARAMETER(ulIndex);
-    UNREFERENCED_PARAMETER(pEntry);
-    return ANSC_STATUS_FAILURE;
+    return ANSC_STATUS_SUCCESS;
 }
 
 
@@ -1883,9 +2326,17 @@ CosaDmlDhcpcGetNumberOfReqOption
         ULONG                       ulClientInstanceNumber
     )
 {
+    int retPsmGet = CCSP_SUCCESS;
+    char *param_value= NULL;
+    char param_name[256]= {0};
+    int instancenum = ulClientInstanceNumber;
+    _PSM_READ_PARAM(PSM_DHCPMANAGER_REQOPTIONCOUNT);
+    if (retPsmGet == CCSP_SUCCESS) {
+       return atoi(param_value);
+    }
+    else
+      return 0;
     UNREFERENCED_PARAMETER(hContext);
-    UNREFERENCED_PARAMETER(ulClientInstanceNumber);
-    return 0;
 }
 
 ANSC_STATUS
@@ -1897,12 +2348,36 @@ CosaDmlDhcpcGetReqOption
         PCOSA_DML_DHCPC_REQ_OPT     pEntry
     )
 {
+    int retPsmGet = CCSP_SUCCESS;
+    char *param_value= NULL;
+    char param_name[256]= {0};
+    int tblInstancenum = ulClientInstanceNumber;
+    int instancenum = ulIndex;
+    pEntry->InstanceNumber = ulIndex;
+    pEntry-> bEnabled = TRUE;
+
+    _PSM_READ_TBL_PARAM(PSM_DHCPMANAGER_REQOPTIONALIAS);
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+       STRCPY_S_NOCLOBBER(pEntry->Alias, sizeof(pEntry->Alias), param_value);
+    }
+
+    _PSM_READ_TBL_PARAM(PSM_DHCPMANAGER_REQOPTIONTAG);
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+       pEntry->Tag = atoi(param_value);
+    }
+
+    _PSM_READ_TBL_PARAM(PSM_DHCPMANAGER_REQOPTIONORDER);
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+       pEntry->Order = atoi(param_value);
+    }
+
     UNREFERENCED_PARAMETER(hContext);
-    UNREFERENCED_PARAMETER(ulClientInstanceNumber);
-    UNREFERENCED_PARAMETER(ulIndex);
-    UNREFERENCED_PARAMETER(pEntry);
-    return ANSC_STATUS_FAILURE;
+    return ANSC_STATUS_SUCCESS;
 }
+
 
 ANSC_STATUS
 CosaDmlDhcpcGetReqOptionbyInsNum

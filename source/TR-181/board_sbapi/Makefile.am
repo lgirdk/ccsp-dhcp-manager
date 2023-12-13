@@ -29,7 +29,7 @@ ACLOCAL_AMFLAGS = -I m4
 hardware_platform = i686-linux-gnu
 
 noinst_LTLIBRARIES = libCcspDhcpMgr_board_sbapi.la
-libCcspDhcpMgr_board_sbapi_la_CPPFLAGS = -I$(top_srcdir)/source/TR-181/include -I$(top_srcdir)/source/TR-181/middle_layer_src -I$(top_srcdir)/source/DHCPServerUtils/include
+libCcspDhcpMgr_board_sbapi_la_CPPFLAGS = -I$(top_srcdir)/source/TR-181/include -I$(top_srcdir)/source/TR-181/middle_layer_src -I$(top_srcdir)/source/DHCPServerUtils/include  -I$(top_srcdir)/source/DHCPClientUtils
 
 libCcspDhcpMgr_board_sbapi_la_SOURCES = cosa_dhcpv6_apis.c cosa_dhcpv4_apis.c ../middle_layer_src/cosa_apis_util.c cosa_common_util.c cosa_dns_apis.c service_dhcpv6_client.c helpers.c cosa_dhcpv4_webconfig_apis.c lan_webconfig_param.c macbinding_webconfig_param.c cosa_x_cisco_com_devicecontrol_apis.c cosa_x_cisco_com_devicecontrol_apis.c service_dhcpv4_client.c
 if FEATURE_SUPPORT_MAPT_NAT46

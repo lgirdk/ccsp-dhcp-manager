@@ -426,7 +426,7 @@ CosaDhcpv4BackendGetDhcpv4Info
         }
 
         DHCPV4_CLIENT_SET_DEFAULTVALUE(pDhcpc);
-        returnStatus = CosaDmlDhcpcGetEntry(NULL, ulIndex, pDhcpc);
+        returnStatus = CosaDmlDhcpcGetEntry(NULL, ulIndex+1, pDhcpc);
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             AnscFreeMemory(pDhcpc);
@@ -536,7 +536,7 @@ CosaDhcpv4BackendGetDhcpv4Info
                 (
                     NULL,
                     pDhcpc->Cfg.InstanceNumber,
-                    ulIndex2,
+                    ulIndex2+1,
                     pReqOption
                     );
             if ( returnStatus != ANSC_STATUS_SUCCESS )
@@ -652,7 +652,7 @@ CosaDhcpv4BackendGetDhcpv4Info
                 (
                     NULL,
                     pDhcpc->Cfg.InstanceNumber,
-                    ulIndex2,
+                    ulIndex2+1,
                     pSendOption
                     );
             if ( returnStatus != ANSC_STATUS_SUCCESS )
@@ -748,6 +748,11 @@ CosaDhcpv4BackendGetDhcpv4Info
 
             }
         }
+    }
+    ANSC_STATUS retStatus = DhcpMgr_StartIpcServer();
+    if(retStatus != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceInfo(("%s %d - IPC Thread failed to start!\n", __FUNCTION__, __LINE__ ));
     }
 #endif
     /*****************************************

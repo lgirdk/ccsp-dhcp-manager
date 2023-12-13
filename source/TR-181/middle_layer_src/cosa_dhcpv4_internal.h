@@ -90,6 +90,18 @@
 #define  COSA_NAT_ROLLBACK_TEST                            0       /* This is just for test purpose */
 #define  COSA_DML_DHCPV4_ACCESS_INTERVAL_POOLCLIENT        10 /* seconds*/
 
+//PSM Entries of DhcpManager.
+#define PSM_DHCPMANAGER_CLIENTCOUNT                        "dmsb.dhcpmanager.ClientNoOfEntries"
+#define PSM_DHCPMANAGER_CLIENTALIAS                        "dmsb.dhcpmanager.Client.%d.Alias"
+#define PSM_DHCPMANAGER_REQOPTIONCOUNT                     "dmsb.dhcpmanager.Client.%d.ReqOptionNoOfEntries"
+#define PSM_DHCPMANAGER_SENDOPTIONCOUNT                    "dmsb.dhcpmanager.Client.%d.SendOptionNoOfEntries"
+#define PSM_DHCPMANAGER_REQOPTIONALIAS                     "dmsb.dhcpmanager.Client.%d.ReqOption.%d.Alias"
+#define PSM_DHCPMANAGER_REQOPTIONTAG                       "dmsb.dhcpmanager.Client.%d.ReqOption.%d.Tag"
+#define PSM_DHCPMANAGER_REQOPTIONORDER                     "dmsb.dhcpmanager.Client.%d.ReqOption.%d.Order"
+#define PSM_DHCPMANAGER_SENDOPTIONALIAS                    "dmsb.dhcpmanager.Client.%d.SendOption.%d.Alias"
+#define PSM_DHCPMANAGER_SENDOPTIONTAG                      "dmsb.dhcpmanager.Client.%d.SendOption.%d.Tag"
+#define PSM_DHCPMANAGER_SENDOPTIONVALUE                    "dmsb.dhcpmanager.Client.%d.SendOption.%d.Value"
+
 /*
 *  This struct is only for dhcpc because it have two sub tables.
 *  For the two table, they just use common link struct because they havenot sub tables.
@@ -276,6 +288,12 @@ COSA_DATAMODEL_DHCPV4,  *PCOSA_DATAMODEL_DHCPV4;
 /*
     Function declaration
 */
+
+ANSC_STATUS
+DhcpMgr_StartIpcServer
+    (
+        VOID
+    );
 
 ANSC_HANDLE
 CosaDhcpv4Create

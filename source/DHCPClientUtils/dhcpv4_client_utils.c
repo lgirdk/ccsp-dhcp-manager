@@ -44,7 +44,7 @@ static pid_t start_ti_udhcpc (dhcp_params * params)
  *
  */
 
-static int add_dhcpv4_opt_to_list (dhcp_opt_list ** opt_list, int opt, char * opt_val)
+int add_dhcpv4_opt_to_list (dhcp_opt_list ** opt_list, int opt, char * opt_val)
 {
 
     if ((opt_list == NULL) || (opt <= 0) ||(opt >= DHCPV4_OPT_END) )
@@ -71,6 +71,7 @@ static int add_dhcpv4_opt_to_list (dhcp_opt_list ** opt_list, int opt, char * op
 
 }
 
+#if 0
 /*
  * get_dhcpv4_opt_list ()
  * @description: Returns a list of DHCP REQ and a list of DHCP SEND options
@@ -115,7 +116,7 @@ static int get_dhcpv4_opt_list (dhcp_opt_list ** req_opt_list, dhcp_opt_list ** 
     return SUCCESS;
 
 }
-
+#endif
 
 /*
  * start_dhcpv4_client ()
@@ -124,27 +125,24 @@ static int get_dhcpv4_opt_list (dhcp_opt_list ** req_opt_list, dhcp_opt_list ** 
  * @return     : returns the pid of the dhcp client program else return error code on failure
  *
  */
-pid_t start_dhcpv4_client (dhcp_params * params)
+pid_t start_dhcpv4_client (dhcp_params * params,dhcp_opt_list * req_opt_list,dhcp_opt_list * send_opt_list)
 {
     if (params == NULL)
     {
         DBG_PRINT("%s %d: Invalid args..\n", __FUNCTION__, __LINE__);
         return 0;
     }
+    if (req_opt_list == NULL)
+    {
+        DBG_PRINT("%s %d: Invalid args for req_opt_list..\n", __FUNCTION__, __LINE__);
+    }
+    if (send_opt_list == NULL)
+    {
+        DBG_PRINT("%s %d: Invalid args for send_opt_list..\n", __FUNCTION__, __LINE__);
+    }
 
    // syscfg_init();
     pid_t pid = FAILURE;
-
-    // init part
-    dhcp_opt_list * req_opt_list = NULL;
-    dhcp_opt_list * send_opt_list = NULL;
-
-    DBG_PRINT("%s %d: Collecting DHCP GET/SEND Request\n", __FUNCTION__, __LINE__);
-    if (get_dhcpv4_opt_list(&req_opt_list, &send_opt_list) == FAILURE)
-    {
-        DBG_PRINT("%s %d: failed to get option list from platform hal\n", __FUNCTION__, __LINE__);
-        return pid;
-    }
 
     // building args and starting dhcpv4 client
     DBG_PRINT("%s %d: Starting DHCP Clients\n", __FUNCTION__, __LINE__);
@@ -166,8 +164,6 @@ pid_t start_dhcpv4_client (dhcp_params * params)
 
     //exit part
     DBG_PRINT("%s %d: freeing all allocated resources\n", __FUNCTION__, __LINE__);
-    free_opt_list_data (req_opt_list);
-    free_opt_list_data (send_opt_list);
     return pid;
 
 }
