@@ -21,9 +21,7 @@ AM_LDFLAGS = -lz -lpthread -lccsp_common $(DBUS_LIBS)
 
 noinst_LTLIBRARIES = libCcspDhcpMgr_Dhcpv4Server.la
 
-libCcspDhcpMgr_Dhcpv4Server_la_CPPFLAGS = -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 \
-                                          -I${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include \
-                                          -I$(top_srcdir)/source/DHCPServerUtils/DHCPv4Server/include \
+libCcspDhcpMgr_Dhcpv4Server_la_CPPFLAGS = -I$(top_srcdir)/source/DHCPServerUtils/DHCPv4Server/include \
                                           -I$(top_srcdir)/source/DHCPServerUtils/utils \
                                           -I$(top_srcdir)/source/DHCPServerUtils/utils/include \
                                           -I$(top_srcdir)/source/DHCPMgrInterface \
