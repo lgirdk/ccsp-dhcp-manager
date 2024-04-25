@@ -25,9 +25,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 noinst_LTLIBRARIES = libCcspDhcpMgr_Dhcpv4Client.la
 
-libCcspDhcpMgr_Dhcpv4Client_la_CPPFLAGS = -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 \
-                                          -I${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include \
-                                          -I$(top_srcdir)/source/DHCPClientUtils/DHCPv4Client/include \
+libCcspDhcpMgr_Dhcpv4Client_la_CPPFLAGS = -I$(top_srcdir)/source/DHCPClientUtils/DHCPv4Client/include \
                                           -I$(top_srcdir)/source/DHCPServerUtils/utils \
                                           -I$(top_srcdir)/source/DHCPServerUtils/utils/include \
                                           -I$(top_srcdir)/source/DHCPMgrInterface \
