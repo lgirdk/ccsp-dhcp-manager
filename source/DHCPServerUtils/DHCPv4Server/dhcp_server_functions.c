@@ -54,7 +54,7 @@
 #define STATIC_DNS_URLS_FILE    "/etc/static_dns_urls"
 #define NETWORK_RES_FILE        "/var/tmp/networkresponse.txt"
 #define DHCP_CONF               "/var/dnsmasq.conf"
-#define DHCP_LEASE_FILE         "/nvram/dnsmasq.leases"
+#define DHCP_LEASE_FILE         "/var/lib/misc/dnsmasq.leases"
 #define DEFAULT_RESOLV_CONF     "/var/default/resolv.conf"
 #define DEFAULT_CONF_DIR        "/var/default"
 #define DEFAULT_FILE            "/etc/utopia/system_defaults"
