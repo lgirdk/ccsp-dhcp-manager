@@ -1583,22 +1583,17 @@ void lan_status_change(char *input)
          }
 }
 
-/*
-void dhcp_server_restart()
-{
-    DHCPMGR_LOG_INFO("Inside dhcp_server_restart");
 
+void dhcp_server_restart(char * arg)
+{
+    DHCPMGR_LOG_INFO("dhcp_server_restart: arg: %s", arg);
+
+    DHCPMGR_LOG_INFO("dhcp_server_restart: calling dhcp_server_stop...");
     dhcp_server_stop();
-    if ((access("/var/tmp/lan_not_restart", F_OK)) == -1)
-    {
-        dhcp_server_start(NULL);
-    }
-    else
-    {
-        dhcp_server_start("lan_not_restart");
-    }
+    
+    DHCPMGR_LOG_INFO("dhcp_server_restart: calling dhcp_server_start...");
+    dhcp_server_start(arg);
 }
-*/
 
 #define isValidSubnetByte(byte) (((byte == 255) || (byte == 254) || (byte == 252) || \
                                   (byte == 248) || (byte == 240) || (byte == 224) || \

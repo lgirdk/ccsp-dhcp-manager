@@ -47,7 +47,7 @@ unsigned int Get_Device_Mode();
 
 void dhcp_server_stop();
 int dhcp_server_start(char *);
-//void dhcp_server_restart();
+void dhcp_server_restart(char *);
 int service_dhcp_init();
 void lan_status_change(char *);
 int init_dhcp_server_service();
